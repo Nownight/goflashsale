@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>GoFlashSale - React 版</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input, button { padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; width: calc(100% - 22px); }
+        button { background-color: #e74c3c; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #c0392b; }
+        .product-item { border-bottom: 1px solid #eee; padding: 15px 0; display: flex; justify-content: space-between; align-items: center; }
+        .stock { font-size: 24px; color: #e74c3c; font-weight: bold; }
+    </style>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const API_BASE_URL = "https://goflashsale.onrender.com";
+
+        // ==========================================
+        // 🧩 组件 1：登录模块 (Login)
+        // ==========================================
+        function Login({ onLoginSuccess }) {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+
+            const handleLogin = async () => {
+                const res = await fetch(`${API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    onLoginSuccess(data.token); // 登录成功，把 Token 交给上级
+                } else {
+                    alert('登录失败: ' + data.error);
+                }
+            };
+
+            return (
+                <div className="card">
+                    <h3>👋 欢迎光临，请登录 (React 版)</h3>
+                    <input value={username} onChange={e => setUsername(e.target.value)} placeholder="用户名" />
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="密码" />
+                    <button onClick={handleLogin}>刷卡进店</button>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 🧩 组件 2：内场商店模块 (Shop)
+        // ==========================================
+        function Shop({ token }) {
+            // 定义两个状态：商品列表和我的订单
+            const [products, setProducts] = useState([]);
+            const [orders, setOrders] = useState([]);
+
+            // useEffect：相当于“刚一进店，立刻去看看货架上有什么”
+            useEffect(() => {
+                fetchProducts();
+                fetchOrders();
+            }, []);
+
+            const fetchProducts = async () => {
+                const res = await fetch(`${API_BASE_URL}/api/products`, { headers: { 'Authorization': token } });
+                const data = await res.json();
+                setProducts(data.data || []); // 把拿到的数据存进状态里，网页会自动更新！
+            };
+
+            const fetchOrders = async () => {
+                const res = await fetch(`${API_BASE_URL}/api/orders`, { headers: { 'Authorization': token } });
+                const data = await res.json();
+                setOrders(data.my_orders || []);
+            };
+
+            const buy = async (productId) => {
+                const res = await fetch(`${API_BASE_URL}/api/order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': token },
+                    body: JSON.stringify({ product_id: productId })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert('🎉 ' + data.message);
+                    fetchProducts(); // 刷新货架库存
+                    fetchOrders();   // 刷新我的订单
+                } else {
+                    alert('😭 ' + data.error);
+                }
+            };
+
+            return (
+                <div>
+                    <div className="card">
+                        <h3>🛍️ 今日秒杀商品</h3>
+                        {products.map(p => (
+                            <div key={p.ID} className="product-item">
+                                <div>
+                                    <h4>{p.Name} (￥{p.Price})</h4>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <div>剩 <span className="stock">{p.Stock}</span> 杯</div>
+                                    <button onClick={() => buy(p.ID)} style={{ width: '100px' }}>⚡ 抢购</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="card">
+                        <h3>🧾 我的战利品</h3>
+                        <ul>
+                            {orders.map(o => (
+                                <li key={o.ID}>订单 #{o.ID} - 购买了: {o.Product.Name}</li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 👑 主模块：整个应用的入口 (App)
+        // ==========================================
+        function App() {
+            // 核心状态：顾客是否戴了手环（Token）
+            const [token, setToken] = useState(localStorage.getItem('jwt_token') || '');
+
+            // 保存 Token 的小动作
+            const handleSaveToken = (newToken) => {
+                localStorage.setItem('jwt_token', newToken);
+                setToken(newToken);
+            };
+
+            return (
+                <div className="container">
+                    <h1 style={{ textAlign: 'center' }}>🧋 云端奶茶秒杀系统 (React重构版)</h1>
+                    
+                    {/* 极其优雅的判断：有 Token 就显示商店，没有 Token 就显示登录框 */}
+                    {token ? <Shop token={token} /> : <Login onLoginSuccess={handleSaveToken} />}
+                </div>
+            );
+        }
+
+        // 启动 React！
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
