@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>小红书生成器 Pro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* 🍎 极致暗黑苹果风 CSS 变量 */
+:root {
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --text: #f5f5f7;
+  --dim: #86868b;
+  --accent: #2997ff;
+  --border: rgba(255,255,255,0.08);
+  --radius: 20px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;margin:0;padding:0;}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#444;border-radius:4px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fu{animation:fadeUp .6s cubic-bezier(0.16,1,0.3,1) both}.fu1{animation-delay:.05s}.fu2{animation-delay:.1s}.fu3{animation-delay:.15s}
+.wrap{max-width:480px;margin:0 auto;padding:3rem 1.5rem 4rem}
+.hdr{text-align:center;margin-bottom:3rem}.hdr-icon{font-size:3rem;margin-bottom:.5rem}.hdr h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0}.hdr p{color:var(--dim);font-size:.9rem;margin-top:.5rem;}
+.lbl{display:block;font-size:.8rem;color:var(--dim);font-weight:600;margin-bottom:.5rem;}
+.ta{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem;color:var(--text);font-size:.95rem;line-height:1.6;resize:none;outline:none;transition:all .3s;box-sizing:border-box}.ta:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(41,151,255,.2)}
+.id-inp{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.8rem 1rem;color:var(--text);font-size:.95rem;outline:none;box-sizing:border-box}.id-inp:focus{border-color:var(--accent)}
+.adv-tog{display:flex;align-items:center;gap:.4rem;background:none;border:none;color:var(--accent);font-size:.85rem;font-weight:600;cursor:pointer;padding:.5rem 0;}
+.adv-panel{max-height:0;overflow:hidden;transition:max-height .4s ease}.adv-panel.open{max-height:500px}
+.theme-row,.style-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:.5rem;margin-bottom:1rem}
+.theme-btn,.style-btn{padding:.6rem .3rem;border-radius:12px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all .2s;color:var(--dim);font-size:.75rem}
+.theme-btn.act,.style-btn.act{border-color:var(--accent);background:rgba(41,151,255,0.1);color:var(--accent)}
+.theme-dots{display:flex;gap:3px;justify-content:center;margin-bottom:.3rem}.theme-dot{width:12px;height:12px;border-radius:50%}
+.gen{width:100%;padding:1rem;border-radius:980px;border:none;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;background:#0071e3;color:#fff;margin-top:1rem}.gen:hover:not(:disabled){background:#0077ed;transform:scale(1.02)}.gen:disabled{opacity:.4;cursor:not-allowed}
+.ld{display:flex;flex-direction:column;align-items:center;padding:5rem 0}.spinner{width:36px;height:36px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin .8s linear infinite;margin-bottom:1.5rem}.ld p{color:var(--text);font-weight:600}
+.err{margin-top:1rem;padding:1rem;border-radius:12px;background:rgba(255,59,48,0.1);color:#ff3b30;font-size:.85rem;}
+.gap>*+*{margin-top:1.2rem}
+.slide-img{display:block;width:100%;border-radius:24px;box-shadow:0 20px 40px rgba(0,0,0,0.5)}
+.toolbar{display:flex;justify-content:space-between;padding:1rem 0}.tbb{padding:.5rem 1rem;border-radius:980px;border:none;background:var(--surface);color:var(--text);font-weight:600;cursor:pointer}.tbb.primary{background:var(--accent);color:#fff}
+.thumbs{display:flex;gap:6px;padding:0 0 1rem;overflow-x:auto}.thumb{width:48px;height:64px;border-radius:8px;overflow:hidden;cursor:pointer;border:2px solid transparent;opacity:.4;transition:all .2s}.thumb.act{border-color:var(--accent);opacity:1}.thumb img{width:100%;height:100%;object-fit:cover}
+.cap-sec{background:var(--surface);border-radius:20px;padding:1.5rem;margin-top:1rem}.cap-ta{width:100%;background:#000;border:1px solid var(--border);border-radius:12px;padding:1rem;color:var(--text);font-size:.9rem;min-height:120px;resize:vertical;outline:none}.copy-btn{width:100%;padding:.8rem;border-radius:980px;border:none;background:#2ecc71;color:#fff;font-weight:600;cursor:pointer;margin-top:1rem}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef,useCallback}=React;
+
+const PALETTES={totoro:{name:"龙猫森林",banner:[74,139,92],bannerText:[255,255,255],bg:[250,248,242],text:[42,48,37],title:[42,58,32],accent:[74,139,92],dim:[122,138,112],bullet:[58,122,74],numBg:[74,139,92],numText:[255,255,255],deco:[138,186,140],footerBg:[74,139,92]},kiki:{name:"魔女宅急便",banner:[42,64,112],bannerText:[255,255,255],bg:[248,246,242],text:[42,40,64],title:[26,24,48],accent:[196,74,74],dim:[106,106,138],bullet:[42,64,112],numBg:[196,74,74],numText:[255,255,255],deco:[138,138,186],footerBg:[42,64,112]}};
+const W=1080,H=1440,MX=80,MY=80,CWD=W-MX*2,FN="'Noto Sans SC',sans-serif",SFN="sans-serif";
+function mkC(){const c=document.createElement("canvas");c.width=W;c.height=H;return c;}
+function drawRR(ctx,x,y,w,h,r,color){ctx.fillStyle=typeof color==="string"?color:`rgb(${color})`;ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.fill();}
+function wrapT(ctx,text,font,maxW){if(!text)return[];ctx.font=font;const lines=[];for(const raw of text.split("\n")){if(!raw.trim()){lines.push("");continue;}let buf="";for(const ch of Array.from(raw)){const t=buf+ch;if(ctx.measureText(t).width>maxW&&buf){lines.push(buf);buf=ch;}else buf=t;}if(buf)lines.push(buf);}return lines;}
+function calcLayout(bullets,maxH){return{fs:30,lh:48,gap:14,tfs:36};}
+
+function renderCover(ctx,page,total,P,author){
+  ctx.fillStyle=`rgb(${P.bg})`;ctx.fillRect(0,0,W,H);
+  ctx.textAlign="left";ctx.textBaseline="top";let y=MY+100;
+  if(page.tag){ctx.font=`500 26px ${FN}`;ctx.fillStyle=`rgb(${P.accent})`;ctx.fillText(page.tag,MX,y);y+=58;}
+  ctx.font=`900 82px ${SFN}`;const tl=wrapT(ctx,page.title,ctx.font,CWD);ctx.fillStyle=`rgb(${P.title})`;tl.forEach(l=>{ctx.fillText(l,MX,y);y+=112;});y+=50;
+  if(page.subtitle){ctx.font=`300 32px ${FN}`;const sl=wrapT(ctx,page.subtitle,ctx.font,CWD);ctx.fillStyle=`rgb(${P.dim})`;sl.forEach(l=>{ctx.fillText(l,MX,y);y+=50;});}
+}
+function renderContent(ctx,page,idx,total,P,author,st){
+  ctx.fillStyle=`rgb(${P.bg})`;ctx.fillRect(0,0,W,H);
+  ctx.textAlign="left";ctx.textBaseline="top";const by=MY;
+  drawRR(ctx,MX-8,by,CWD+16,72,14,P.banner);
+  ctx.font=`900 34px ${FN}`;ctx.fillStyle=`rgb(${P.bannerText})`;ctx.textAlign="center";ctx.fillText(st||"",W/2,by+19);ctx.textAlign="left";
+  let y=by+100;const cr=26,cx=MX+cr,cy=y+cr;
+  drawRR(ctx,cx-cr,cy-cr,cr*2,cr*2,cr,P.numBg);ctx.font=`700 22px ${FN}`;ctx.fillStyle=`rgb(${P.numText})`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(String(idx),cx,cy);ctx.textAlign="left";ctx.textBaseline="top";
+  ctx.font=`900 36px ${FN}`;ctx.fillStyle=`rgb(${P.title})`;ctx.fillText(page.title||"",cx+44,cy-18);y+=100;
+  page.bullets?.forEach(item=>{ctx.fillStyle=`rgb(${P.bullet})`;ctx.beginPath();ctx.arc(MX+12,y+17,5,0,Math.PI*2);ctx.fill();const bl=wrapT(ctx,item,`400 30px ${FN}`,CWD-42);ctx.font=`400 30px ${FN}`;ctx.fillStyle=`rgb(${P.text})`;bl.forEach(l=>{ctx.fillText(l,MX+34,y);y+=48;});y+=14;});
+}
+function renderEnding(ctx,page,total,P,author){
+  ctx.fillStyle=`rgb(${P.bg})`;ctx.fillRect(0,0,W,H);ctx.textBaseline="top";let y=H*.3;
+  ctx.font=`700 54px ${SFN}`;ctx.fillStyle=`rgb(${P.title})`;ctx.textAlign="center";wrapT(ctx,page.title||"",ctx.font,CWD-60).forEach(l=>{ctx.fillText(l,W/2,y);y+=76;});
+}
+function renderPage(page,idx,total,P,author,st){
+  const c=mkC(),ctx=c.getContext("2d"),pt=page.type||"content";
+  if(idx===0||pt==="cover")renderCover(ctx,page,total,P,author);
+  else if(idx===total-1||pt==="ending")renderEnding(ctx,page,total,P,author);
+  else renderContent(ctx,page,idx,total,P,author,st);
+  return c;
+}
+
+const SD={tutorial:"干货教学",emotional:"情绪共鸣"};
+function buildPrompt(idea,style){return`你是一个写小红书的真人博主。根据要求生成纯文字卡片。\n想法：${idea}\n要求输出格式纯JSON，包含seriesTitle, pages(包含type,title,bullets等), caption, hashtags。`;}
+
+// ==========================================
+// 💡 架构师注入：读取 React 平台全局配置
+// ==========================================
+async function callAPI(idea,style){
+    const aiMode = localStorage.getItem('ai_mode') || 'official';
+    let endpoint = '', authKey = '', targetModel = '';
+
+    if (aiMode === 'official') {
+        const provider = localStorage.getItem('api_provider');
+        authKey = localStorage.getItem('api_key');
+        if (!authKey) throw new Error("缺少全局 API Key，请返回平台主页【生产力引擎】配置！");
+        
+        if (provider === 'deepseek') { endpoint = 'https://api.deepseek.com/chat/completions'; targetModel = 'deepseek-chat'; }
+        else if (provider === 'minimax') { endpoint = 'https://api.minimax.chat/v1/text/chatcompletion_v2'; targetModel = 'abab6.5s-chat'; }
+        else { endpoint = 'https://api.openai.com/v1/chat/completions'; targetModel = 'gpt-4o-mini'; }
+    } else {
+        authKey = localStorage.getItem('gpt_access_token');
+        if (!authKey) throw new Error("缺少 Web Token，请返回平台主页配置！");
+        endpoint = 'http://localhost:8080/v1/chat/completions'; 
+        targetModel = 'gpt-4o';
+    }
+
+    const r = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${authKey}` },
+        body: JSON.stringify({
+            model: targetModel,
+            messages: [{role: "user", content: buildPrompt(idea, style)}],
+            temperature: 0.8
+        })
+    });
+    
+    if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error?.message || `API网络错误 (${r.status})`);
+    }
+    const d = await r.json();
+    const t = d.choices?.[0]?.message?.content || "";
+    return JSON.parse(t.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
+}
+
+async function downloadZip(cvs){const zip=new JSZip();for(let i=0;i<cvs.length;i++){const blob=await new Promise(r=>cvs[i].toBlob(r,"image/jpeg",0.92));zip.file(`xhs_${i+1}.jpg`,blob);}const c=await zip.generateAsync({type:"blob"});const u=URL.createObjectURL(c);const a=document.createElement("a");a.href=u;a.download="xhs.zip";a.click();}
+
+function App(){
+  const[author,setAuthor]=useState(()=>{try{return localStorage.getItem("xhs_author")||""}catch{return""}});
+  const[idea,setIdea]=useState("");const[style,setStyle]=useState("tutorial");const[palette,setPalette]=useState("totoro");
+  const[advOpen,setAdvOpen]=useState(false);const[loading,setLoading]=useState(false);const[error,setError]=useState(null);
+  const[result,setResult]=useState(null);const[cvs,setCvs]=useState([]);const[imgs,setImgs]=useState([]);const[cur,setCur]=useState(0);
+  const[caption,setCaption]=useState("");const[copied,setCopied]=useState(false);
+
+  const gen=async()=>{if(!idea.trim())return;setLoading(true);setError(null);setResult(null);setCvs([]);setImgs([]);
+    try{
+      const d=await callAPI(idea,style);setResult(d);setCaption(d.caption);
+      const P=PALETTES[palette], st=d.seriesTitle||"", total=d.pages.length;
+      const cs=d.pages.map((p,i)=>renderPage(p,i,total,P,author,st));
+      setCvs(cs);setImgs(cs.map(c=>c.toDataURL("image/jpeg",.9)));setCur(0);
+    }catch(e){setError(e.message)}setLoading(false);};
+
+  if(!result&&!loading)return(
+    <div className="wrap">
+      <div className="hdr fu"><div className="hdr-icon">📝</div><h1>小红书生成器 Pro</h1><p>全自动排版 · 全局引擎加速</p></div>
+      <div className="gap">
+        <div className="fu fu1"><label className="lbl">创作想法</label><textarea className="ta" rows="4" value={idea} onChange={e=>setIdea(e.target.value)} placeholder="例如：5个让生活更高效的习惯..."/></div>
+        <div className="fu fu2"><label className="lbl">署名 ID (可选)</label><input className="id-inp" value={author} onChange={e=>{setAuthor(e.target.value);localStorage.setItem("xhs_author",e.target.value)}}/></div>
+        <div className="fu fu3"><button className="adv-tog" onClick={()=>setAdvOpen(!advOpen)}>⚙️ 个性化设置</button>
+          <div className={`adv-panel ${advOpen?"open":""}`}><div style={{paddingTop:".5rem"}}><label className="lbl">主题配色</label><div className="theme-row">{Object.entries(PALETTES).map(([k,v])=>(<button key={k} className={`theme-btn ${palette===k?"act":""}`} onClick={()=>setPalette(k)}><div className="theme-nm">{v.name}</div></button>))}</div></div></div></div>
+        <div className="fu fu3"><button className="gen" onClick={gen} disabled={!idea.trim()}>🚀 开始生成</button></div>
+      </div>{error&&<div className="err">❌ {error}</div>}
+    </div>);
+
+  if(loading)return(<div className="wrap"><div className="ld"><div className="spinner"/><p>引擎处理中...</p></div></div>);
+
+  return(
+    <div className="wrap" style={{paddingTop:"2rem"}}>
+      <img className="slide-img" src={imgs[cur]} alt=""/>
+      <div className="toolbar"><button className="tbb" onClick={()=>setResult(null)}>← 返回</button><button className="tbb primary" onClick={()=>downloadZip(cvs)}>📦 下载全部</button></div>
+      <div className="thumbs">{imgs.map((s,j)=><div key={j} className={`thumb ${j===cur?"act":""}`} onClick={()=>setCur(j)}><img src={s} alt=""/></div>)}</div>
+      <div className="cap-sec"><textarea className="cap-ta" value={caption} onChange={e=>setCaption(e.target.value)}/><button className="copy-btn" onClick={()=>{navigator.clipboard.writeText(caption+"\n\n"+result.hashtags.map(t=>"#"+t).join(" "));setCopied(true);setTimeout(()=>setCopied(false),2000)}}>{copied?"✅ 已复制":"复制文案"}</button></div>
+    </div>);
+}
+ReactDOM.render(<App/>,document.getElementById("root"));
+</script>
+</body>
+</html>
