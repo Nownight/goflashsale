@@ -103,8 +103,10 @@ async function callAPI(idea,style){
         if (!authKey) throw new Error("缺少全局 API Key，请返回平台主页【生产力引擎】配置！");
         
         if (provider === 'deepseek') { endpoint = 'https://api.deepseek.com/chat/completions'; targetModel = 'deepseek-chat'; }
-        else if (provider === 'minimax') { endpoint = 'https://api.minimax.chat/v1/text/chatcompletion_v2'; targetModel = 'abab6.5s-chat'; }
-        else { endpoint = 'https://api.openai.com/v1/chat/completions'; targetModel = 'gpt-4o-mini'; }
+        else if (provider === 'minimax') { 
+    endpoint = 'https://api.minimaxi.com/v1/chat/completions'; 
+    targetModel = 'MiniMax-M2.7'; 
+}    
     } else {
         authKey = localStorage.getItem('gpt_access_token');
         if (!authKey) throw new Error("缺少 Web Token，请返回平台主页配置！");
