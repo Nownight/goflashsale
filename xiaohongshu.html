@@ -128,7 +128,20 @@ async function callAPI(idea,style){
     }
     const d = await r.json();
     const t = d.choices?.[0]?.message?.content || "";
-    return JSON.parse(t.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
+    
+    // 💡 架构师注入：强力 JSON 剥离器，防止 AI 说废话
+    try {
+        // 1. 用正则表达式，强行把第一个 { 和最后一个 } 之间的所有内容挖出来
+        const match = t.match(/\{[\s\S]*\}/);
+        const pureJsonString = match ? match[0] : t;
+        
+        // 2. 安全解析
+        return JSON.parse(pureJsonString);
+    } catch (err) {
+        // 3. 如果还是失败（比如 AI 没把话说完），把原话打印到控制台，并给用户优雅的提示
+        console.error("❌ 抓包到 AI 乱说的话：", t);
+        throw new Error("AI 稍微走神了一下，没有按规定格式输出，请再点一次【开始生成】！");
+    }
 }
 
 async function downloadZip(cvs){const zip=new JSZip();for(let i=0;i<cvs.length;i++){const blob=await new Promise(r=>cvs[i].toBlob(r,"image/jpeg",0.92));zip.file(`xhs_${i+1}.jpg`,blob);}const c=await zip.generateAsync({type:"blob"});const u=URL.createObjectURL(c);const a=document.createElement("a");a.href=u;a.download="xhs.zip";a.click();}
