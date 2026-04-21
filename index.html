@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>xtp的小菜园 · Garden Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Noto+Serif+SC:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<style>
+  :root {
+    --paper: #F5F1E8;
+    --paper-2: #EDE7D7;
+    --ink: #1A1A17;
+    --ink-soft: #4A4A44;
+    --ink-mute: #8A8A82;
+    --rule: #1A1A1722;
+    --rule-soft: #1A1A1711;
+    --moss: oklch(0.48 0.08 140);
+    --moss-soft: oklch(0.82 0.05 140);
+    --earth: oklch(0.55 0.09 60);
+    --serif: 'Fraunces', 'Noto Serif SC', Georgia, serif;
+    --cn: 'Noto Serif SC', 'Fraunces', Georgia, serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); }
+  body { font-feature-settings: "ss01", "ss02"; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--moss); color: var(--paper); }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; padding: 0; }
+  input, textarea { font-family: inherit; color: inherit; }
+  #root { min-height: 100vh; }
+
+  /* ---------- reusable ---------- */
+  .mono { font-family: var(--mono); letter-spacing: 0.02em; }
+  .cn { font-family: var(--cn); }
+  .rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+
+  /* container */
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 48px; }
+  @media (max-width: 720px) { .wrap { padding: 0 24px; } }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in oklab, var(--paper) 88%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .topbar-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0;
+  }
+  .brand { display: flex; align-items: baseline; gap: 12px; cursor: pointer; }
+  .brand-mark { width: 28px; height: 28px; display: inline-block; position: relative; top: 6px; }
+  .brand-name {
+    font-family: var(--serif);
+    font-size: 22px; font-weight: 400; letter-spacing: -0.01em;
+    font-style: italic;
+  }
+  .brand-sub {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-mute);
+    text-transform: uppercase; letter-spacing: 0.14em;
+  }
+  .nav { display: flex; gap: 36px; align-items: center; }
+  .nav a, .nav button {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-soft);
+    transition: color 0.2s;
+  }
+  .nav a:hover, .nav button:hover { color: var(--ink); }
+  .nav .active { color: var(--ink); }
+  .nav .pill {
+    border: 1px solid var(--ink);
+    padding: 8px 14px; border-radius: 999px;
+    color: var(--ink);
+    transition: background 0.2s, color 0.2s;
+  }
+  .nav .pill:hover { background: var(--ink); color: var(--paper); }
+  .nav .pill.primary { background: var(--ink); color: var(--paper); }
+  .nav .pill.primary:hover { background: var(--moss); border-color: var(--moss); }
+
+  /* ---------- tools launcher ---------- */
+  .tools-wrap { position: relative; }
+  .tools-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 999px;
+    border: 1px solid var(--rule);
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-soft);
+    transition: all 0.2s;
+  }
+  .tools-btn:hover, .tools-btn.open { border-color: var(--ink); color: var(--ink); background: var(--paper-2); }
+  .tools-btn svg { transition: transform 0.25s; }
+  .tools-btn.open svg { transform: rotate(180deg); }
+  .tools-menu {
+    position: absolute; top: calc(100% + 10px); right: 0;
+    background: var(--paper); border: 1px solid var(--rule);
+    border-radius: 10px; padding: 8px;
+    min-width: 280px;
+    box-shadow: 0 20px 50px -15px #1a1a1733, 0 4px 12px -4px #1a1a1722;
+    z-index: 50;
+    display: none;
+    animation: toolsDrop 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .tools-menu.open { display: block; }
+  @keyframes toolsDrop {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .tools-menu-head {
+    padding: 10px 12px 10px;
+    font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--ink-mute);
+    border-bottom: 1px solid var(--rule-soft);
+    margin-bottom: 4px;
+    display: flex; justify-content: space-between;
+  }
+  .tools-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 12px; border-radius: 6px;
+    text-align: left; width: 100%;
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+  .tools-item:hover { background: var(--paper-2); }
+  .tools-item-ico {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--paper-2); border: 1px solid var(--rule-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .tools-item-body { flex: 1; min-width: 0; }
+  .tools-item-title {
+    font-family: var(--serif); font-size: 15px;
+    font-weight: 500; letter-spacing: -0.005em;
+    color: var(--ink); display: flex; align-items: center; gap: 8px;
+  }
+  .tools-item-title .cn { font-family: var(--cn); font-weight: 400; font-size: 14px; }
+  .tools-item-sub {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--ink-mute); letter-spacing: 0.08em;
+    text-transform: uppercase; margin-top: 2px;
+  }
+  .tools-item-arrow {
+    font-family: var(--mono); font-size: 13px;
+    color: var(--ink-mute); opacity: 0; transition: opacity 0.2s, transform 0.2s;
+  }
+  .tools-item:hover .tools-item-arrow { opacity: 1; transform: translateX(3px); }
+  .tools-menu-foot {
+    margin-top: 4px; padding: 10px 12px;
+    border-top: 1px solid var(--rule-soft);
+    font-family: var(--mono); font-size: 10px;
+    color: var(--ink-mute); letter-spacing: 0.08em;
+    display: flex; justify-content: space-between;
+  }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 80px 0 56px; position: relative; }
+  .hero-meta {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    padding-bottom: 24px; border-bottom: 1px solid var(--rule);
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.14em;
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(64px, 11vw, 176px);
+    line-height: 0.88;
+    letter-spacing: -0.035em;
+    margin: 48px 0 0;
+    font-weight: 300;
+    font-variation-settings: "opsz" 144;
+  }
+  .hero h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--moss);
+  }
+  .hero-sub {
+    margin-top: 36px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 80px;
+    padding-top: 28px; border-top: 1px solid var(--rule);
+  }
+  @media (max-width: 720px) {
+    .hero-sub { grid-template-columns: 1fr; gap: 24px; }
+  }
+  .hero-sub .lead {
+    font-size: 20px; line-height: 1.5; color: var(--ink-soft);
+    font-family: var(--cn); font-weight: 300;
+    text-wrap: pretty;
+  }
+  .hero-sub .stats { display: flex; flex-direction: column; gap: 16px; }
+  .stat-row { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; }
+  .stat-row .k { color: var(--ink-mute); text-transform: uppercase; }
+  .stat-row .v { color: var(--ink); }
+
+  /* ---------- filter bar ---------- */
+  .filter {
+    display: flex; gap: 4px; align-items: center;
+    padding: 20px 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    margin-top: 72px;
+    flex-wrap: wrap;
+  }
+  .filter-label {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--ink-mute); margin-right: 20px;
+  }
+  .chip {
+    font-family: var(--mono); font-size: 12px;
+    padding: 6px 14px; border-radius: 999px;
+    color: var(--ink-soft);
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+  .chip:hover { color: var(--ink); }
+  .chip.on { background: var(--ink); color: var(--paper); }
+  .filter-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--rule); padding: 6px 12px; border-radius: 999px;
+    background: transparent;
+  }
+  .search-box input {
+    border: none; outline: none; background: transparent;
+    font-family: var(--mono); font-size: 12px; width: 160px;
+  }
+
+  /* ---------- posts list ---------- */
+  .posts { padding: 48px 0 120px; }
+  .post {
+    display: grid;
+    grid-template-columns: 72px 280px 1fr auto;
+    gap: 48px;
+    padding: 48px 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: start;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.25s;
+  }
+  .post:hover { background: linear-gradient(to right, transparent 0%, var(--paper-2) 8%, var(--paper-2) 92%, transparent 100%); }
+  .post:hover .post-title { color: var(--moss); }
+  .post:hover .post-arrow { transform: translateX(6px); }
+
+  .post-num {
+    font-family: var(--mono); font-size: 12px; color: var(--ink-mute);
+    letter-spacing: 0.1em; padding-top: 6px;
+  }
+  .post-thumb {
+    width: 280px; aspect-ratio: 4/3; border-radius: 4px;
+    overflow: hidden; position: relative;
+    background: var(--paper-2);
+  }
+  .post-thumb svg { display: block; width: 100%; height: 100%; }
+  .post-body { padding-top: 0; min-width: 0; }
+  .post-meta {
+    display: flex; gap: 16px; align-items: center;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-mute);
+    text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 16px;
+  }
+  .post-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-mute); }
+  .post-meta .tag { color: var(--moss); }
+  .post-title {
+    font-family: var(--serif);
+    font-size: 40px; line-height: 1.04;
+    letter-spacing: -0.022em;
+    font-weight: 400;
+    margin: 0 0 20px;
+    text-wrap: balance;
+    transition: color 0.25s;
+  }
+  .post-title .cn-part { font-family: var(--cn); font-weight: 400; letter-spacing: -0.01em; }
+  .post-title em { font-style: italic; color: var(--moss); }
+  .post-excerpt {
+    font-family: var(--cn); font-weight: 300;
+    font-size: 16px; line-height: 1.65;
+    color: var(--ink-soft);
+    max-width: 62ch;
+    text-wrap: pretty;
+  }
+  .post-cta {
+    align-self: start;
+    padding-top: 10px;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
+  }
+  .post-arrow {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 1px solid var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s, background 0.2s;
+  }
+  .post:hover .post-arrow { background: var(--ink); color: var(--paper); }
+  .post-read {
+    font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--ink-mute);
+  }
+
+  @media (max-width: 900px) {
+    .post { grid-template-columns: 40px 1fr; gap: 16px; }
+    .post-thumb { display: none; }
+    .post-cta { display: none; }
+    .post-title { font-size: 28px; }
+  }
+
+  /* ---------- footer ---------- */
+  footer {
+    padding: 72px 0 48px;
+    border-top: 1px solid var(--rule);
+    background: var(--paper-2);
+  }
+  .footer-grid {
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px;
+  }
+  @media (max-width: 720px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+  .footer-title {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--ink-mute); margin-bottom: 16px;
+  }
+  .footer-big {
+    font-family: var(--serif); font-style: italic; font-weight: 300;
+    font-size: 56px; line-height: 1; letter-spacing: -0.03em;
+    margin: 0;
+  }
+  .footer-list { display: flex; flex-direction: column; gap: 10px; }
+  .footer-list a { font-family: var(--cn); font-size: 15px; color: var(--ink-soft); }
+  .footer-list a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+  .footer-bottom {
+    margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--rule);
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-mute);
+    text-transform: uppercase; letter-spacing: 0.14em;
+  }
+
+  /* ---------- modal ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    background: color-mix(in oklab, var(--ink) 40%, transparent);
+    backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    animation: fade 0.25s ease;
+  }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pop { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
+  .modal {
+    background: var(--paper);
+    width: 460px; max-width: calc(100vw - 32px);
+    padding: 48px;
+    border-radius: 6px;
+    border: 1px solid var(--rule);
+    box-shadow: 0 30px 80px -20px #1a1a1733;
+    animation: pop 0.3s ease;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-mute);
+    transition: background 0.2s, color 0.2s;
+  }
+  .modal-close:hover { background: var(--paper-2); color: var(--ink); }
+  .modal-label { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--moss); margin-bottom: 12px; }
+  .modal-title {
+    font-family: var(--serif); font-size: 36px; line-height: 1;
+    letter-spacing: -0.03em; font-weight: 400;
+    margin: 0 0 8px;
+  }
+  .modal-title em { font-style: italic; }
+  .modal-sub {
+    font-family: var(--cn); font-weight: 300;
+    color: var(--ink-soft); font-size: 14px; line-height: 1.5;
+    margin-bottom: 28px;
+  }
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-mute); margin-bottom: 8px;
+  }
+  .field input {
+    width: 100%;
+    padding: 12px 0; border: none;
+    border-bottom: 1px solid var(--rule);
+    background: transparent; outline: none;
+    font-family: var(--serif); font-size: 18px; color: var(--ink);
+    transition: border-color 0.2s;
+  }
+  .field input:focus { border-bottom-color: var(--ink); }
+  .btn-primary {
+    width: 100%;
+    background: var(--ink); color: var(--paper);
+    padding: 14px; border-radius: 4px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    transition: background 0.2s;
+    margin-top: 12px;
+  }
+  .btn-primary:hover { background: var(--moss); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .form-hint {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-mute);
+    text-align: center; margin-top: 16px; letter-spacing: 0.05em;
+  }
+  .form-hint code { background: var(--paper-2); padding: 2px 6px; border-radius: 3px; color: var(--ink); }
+  .form-error { color: #a43f2a; font-family: var(--mono); font-size: 11px; margin-top: 10px; }
+
+  /* ---------- composer ---------- */
+  .composer { padding: 48px 0 120px; min-height: calc(100vh - 80px); }
+  .composer-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 20px; border-bottom: 1px solid var(--rule);
+    margin-bottom: 40px;
+  }
+  .composer-bar .left {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--ink-mute);
+  }
+  .composer-bar .left .dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--moss); margin-right: 8px; vertical-align: middle;
+    animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .composer-actions { display: flex; gap: 8px; }
+  .btn-ghost {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.14em; padding: 10px 18px; border-radius: 999px;
+    border: 1px solid var(--rule); color: var(--ink-soft);
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--ink); color: var(--ink); }
+  .btn-solid {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.14em; padding: 10px 18px; border-radius: 999px;
+    background: var(--ink); color: var(--paper);
+  }
+  .btn-solid:hover { background: var(--moss); }
+
+  .compose-grid { display: grid; grid-template-columns: 1fr 320px; gap: 64px; }
+  @media (max-width: 900px) { .compose-grid { grid-template-columns: 1fr; } }
+  .compose-input {
+    width: 100%;
+    border: none; background: transparent; outline: none;
+    font-family: var(--serif); color: var(--ink);
+    resize: none; display: block;
+  }
+  .compose-input.title {
+    font-size: 64px; line-height: 1.02; letter-spacing: -0.03em;
+    font-weight: 300; font-variation-settings: "opsz" 144;
+    margin-bottom: 8px; padding: 0;
+  }
+  .compose-input.title::placeholder { color: #1a1a1733; font-style: italic; }
+  .compose-input.excerpt {
+    font-family: var(--cn); font-weight: 300; font-size: 18px;
+    line-height: 1.5; color: var(--ink-soft);
+    margin-bottom: 36px; padding-bottom: 24px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .compose-input.excerpt::placeholder { color: var(--ink-mute); }
+  .compose-input.body {
+    font-family: var(--cn); font-weight: 400; font-size: 17px;
+    line-height: 1.8; color: var(--ink); min-height: 400px;
+  }
+  .compose-input.body::placeholder { color: var(--ink-mute); }
+
+  .compose-side { display: flex; flex-direction: column; gap: 28px; }
+  .side-block { border-top: 1px solid var(--rule); padding-top: 20px; }
+  .side-label {
+    font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--ink-mute); margin-bottom: 12px;
+  }
+  .side-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .side-tag {
+    font-family: var(--mono); font-size: 11px;
+    padding: 5px 12px; border-radius: 999px;
+    border: 1px solid var(--rule); color: var(--ink-soft);
+    transition: all 0.2s;
+  }
+  .side-tag.on { background: var(--moss); color: var(--paper); border-color: var(--moss); }
+  .side-tag:hover:not(.on) { border-color: var(--ink); color: var(--ink); }
+  .side-thumb-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .side-thumb {
+    aspect-ratio: 4/3; border-radius: 4px; overflow: hidden;
+    border: 2px solid transparent; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .side-thumb.on { border-color: var(--ink); }
+  .side-thumb svg { width: 100%; height: 100%; display: block; }
+  .count-readout {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-mute);
+    display: flex; justify-content: space-between;
+  }
+
+  /* ---------- detail ---------- */
+  .detail { padding: 56px 0 120px; }
+  .detail-back {
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--ink-mute); display: inline-flex;
+    gap: 8px; align-items: center; margin-bottom: 48px;
+  }
+  .detail-back:hover { color: var(--ink); }
+  .detail-meta {
+    display: flex; gap: 16px; align-items: center;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-mute);
+    text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 32px;
+  }
+  .detail h1 {
+    font-family: var(--serif); font-size: clamp(48px, 6vw, 88px);
+    line-height: 1; letter-spacing: -0.03em; font-weight: 300;
+    font-variation-settings: "opsz" 144;
+    margin: 0 0 32px; max-width: 18ch; text-wrap: balance;
+  }
+  .detail h1 .cn-part { font-family: var(--cn); font-weight: 400; }
+  .detail-hero {
+    width: 100%; aspect-ratio: 16/7; border-radius: 6px;
+    overflow: hidden; background: var(--paper-2); margin: 40px 0 56px;
+  }
+  .detail-hero svg { width: 100%; height: 100%; display: block; }
+  .detail-body {
+    max-width: 680px; margin: 0 auto;
+    font-family: var(--cn); font-size: 17px; line-height: 1.85;
+    color: var(--ink); font-weight: 400;
+  }
+  .detail-body p { margin: 0 0 24px; text-wrap: pretty; }
+  .detail-body .lead {
+    font-family: var(--serif); font-style: italic; font-size: 22px;
+    line-height: 1.5; color: var(--ink-soft); margin-bottom: 36px;
+    font-weight: 300;
+  }
+  .detail-body h2 {
+    font-family: var(--serif); font-size: 30px; font-weight: 400;
+    letter-spacing: -0.02em; margin: 48px 0 20px;
+  }
+  .detail-body blockquote {
+    margin: 36px 0; padding-left: 20px;
+    border-left: 2px solid var(--moss);
+    font-family: var(--serif); font-style: italic; font-size: 20px;
+    line-height: 1.5; color: var(--ink-soft);
+  }
+
+  /* ---------- placeholder illustration ---------- */
+  .ph-illus { width: 100%; height: 100%; display: block; }
+
+  /* Tweaks panel */
+  .tweaks {
+    position: fixed; bottom: 20px; right: 20px; z-index: 200;
+    background: var(--ink); color: var(--paper);
+    border-radius: 10px; padding: 20px;
+    width: 260px; font-family: var(--mono); font-size: 11px;
+    box-shadow: 0 20px 50px -10px #00000055;
+    display: none;
+  }
+  .tweaks.on { display: block; }
+  .tweaks h4 { margin: 0 0 12px; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.6; }
+  .tweaks .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; gap: 12px; }
+  .tweaks .swatch-row { display: flex; gap: 6px; }
+  .tweaks .swatch { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+  .tweaks .swatch.on { border-color: var(--paper); }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#F5F1E8">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#F5F1E8"/>
+    <g transform="translate(600 400)" fill="none" stroke="#2d5233" stroke-width="8" stroke-linecap="round">
+      <path d="M0 180 V-40"/>
+      <path d="M0 -40 C -120 -40, -200 -120, -200 -220 C -100 -220, 0 -160, 0 -40 Z" fill="#2d5233" fill-opacity="0.18"/>
+      <path d="M0 40 C 120 40, 200 -40, 200 -140 C 100 -140, 0 -80, 0 40 Z" fill="#2d5233" fill-opacity="0.18"/>
+    </g>
+    <text x="600" y="660" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="48" fill="#1A1A17">xtp的小菜园</text>
+  </svg>
+</template>
+<div id="root"></div>
+
+<script type="application/json" id="tweaks-defaults">
+{
+  "accent": "moss",
+  "layout": "list"
+}
+</script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef } = React;
+
+/* =========================================================
+   DATA
+========================================================= */
+const INITIAL_POSTS = [
+  {
+    id: 1,
+    date: "Apr, 2026",
+    dateShort: "04.2026",
+    title: "春分播种：今年的第一把种子",
+    titleEn: "The First Seeds of Spring",
+    tag: "田间笔记",
+    read: "6 min",
+    excerpt: "清明前后，土壤刚刚回暖。今年决定种几行番茄、一小片罗勒，还有去年朋友送我的那包不知名的紫色豆子。先从最简单的开始，慢慢来。",
+    body: [
+      "清明前后，土壤刚刚回暖。院子里的那块三平米的小地，翻了三遍，掺了些去年堆的腐叶土，现在捏在手里松松软软的。",
+      "今年打算种得少一点，但种得专心一点。去年贪多，七八样作物挤在一起，最后一半都没照顾到位。番茄疯长、罗勒被忽略、豆角爬到了邻居的墙上。",
+      "计划表写在冰箱上：四行圣女果、一小片甜罗勒、两株朝天椒、六个紫薯穴。剩下的位置留给那包紫色豆子——朋友从云南带回来的，她也说不上品种，只说『好看』。",
+      "种子下土那天下了点小雨，正好。浇水的活省了。"
+    ]
+  },
+  {
+    id: 2,
+    date: "Mar, 2026",
+    dateShort: "03.2026",
+    title: "厨房里的第三盆薄荷，终于救活了",
+    titleEn: "Mint, On the Third Try",
+    tag: "室内植物",
+    read: "4 min",
+    excerpt: "前两盆都在半年内枯掉了。这次换了土、换了位置、换了浇水节奏。它现在每周给我新的一轮叶子，够泡两壶茶。",
+    body: [
+      "前两盆薄荷，一盆烂根，一盆晒焦。我以为薄荷是最好养的东西，结果它专门挑剔我的错误。",
+      "这次从头开始：陶盆、粗颗粒土、每两天用手指戳一下表层，干了再浇。窗台往东，早上有两小时直射太阳，剩下的时间漫射光。",
+      "第四周它开始分枝。第六周我剪下第一批叶子，揉碎了泡进热水里。"
+    ]
+  },
+  {
+    id: 3,
+    date: "Feb, 2026",
+    dateShort: "02.2026",
+    title: "关于『懒』的园艺哲学：我不再每天浇水",
+    titleEn: "A Lazy Gardener's Manifesto",
+    tag: "思考",
+    read: "7 min",
+    excerpt: "植物不喜欢焦虑的主人。过去我每天盯着盆土，稍微干一点就加水，结果烂根的比缺水的多。现在改成观察——只在它真正需要的时候出手。",
+    body: [
+      "过去我每天早上第一件事，就是巡视阳台，挨个摸土。只要感觉『有点干』就浇一遍。三个月里死了六盆。",
+      "朋友老陈，一个种了二十年月季的长辈，告诉我：『植物不是宠物，它比你耐饿也比你耐渴。你要做的是看它，不是伺候它。』",
+      "他让我改成一周两次巡视，每次只浇真正干透的。结果呢？死亡率降到零，生长速度反而提升了。",
+      "园艺的第一课，大概是戒掉控制欲。"
+    ]
+  },
+  {
+    id: 4,
+    date: "Jan, 2026",
+    dateShort: "01.2026",
+    title: "冬天的阳台：什么都不做，就是在做事",
+    titleEn: "Winter Balcony, Doing Nothing",
+    tag: "季节",
+    read: "3 min",
+    excerpt: "北方的一月，阳台上只剩下一盆迷迭香和几棵多肉。不需要修剪，不需要施肥。看着它们安静地待着，我也跟着安静下来。",
+    body: [
+      "北方的一月，外面零下八度，阳台是封闭的，室内温度在十二到十五度之间——这是大多数地中海香草的冬眠区。",
+      "迷迭香不需要浇水，多肉更不需要。我唯一做的事，是早上拉开窗帘，让它们晒两小时太阳。",
+      "有时候坐在旁边喝咖啡，看光从一片叶子移到另一片叶子。这大概就是冬天的园艺。"
+    ]
+  },
+  {
+    id: 5,
+    date: "Dec, 2025",
+    dateShort: "12.2025",
+    title: "年终盘点：今年死掉的植物，和它们教我的事",
+    titleEn: "A Year's Compost",
+    tag: "年度总结",
+    read: "9 min",
+    excerpt: "一共死了十一棵。按死因分类：过度浇水占四棵，晒伤三棵，虫害两棵，不明原因两棵。每一棵都附一段简短的反思。",
+    body: [
+      "一共十一棵。按死因分类——",
+      "过度浇水占四棵：两盆薄荷、一株罗勒、一盆绣球。都是我太焦虑的后果。",
+      "晒伤三棵：绿萝一盆、铜钱草一盆、一盆不知名的蕨。南向阳台夏天的直射太阳，是我低估的威胁。",
+      "虫害两棵：一株月季（蚜虫）、一盆辣椒（红蜘蛛）。都没有及时处理。",
+      "不明原因两棵：仙客来、风信子。它们看起来好好的，某天早上就塌了。",
+      "明年的目标：少买植物，多观察已有的。"
+    ]
+  },
+  {
+    id: 6,
+    date: "Nov, 2025",
+    dateShort: "11.2025",
+    title: "从菜场带回来的葱白，在水里养了四十天",
+    titleEn: "Forty Days of Scallion Water",
+    tag: "实验",
+    read: "5 min",
+    excerpt: "一个小玻璃杯，半杯水，三根葱白。换水的频率、光照的位置、剪的时机——这是我最近最喜欢的一个小实验。",
+    body: [
+      "起因很简单：做菜剩下一小把葱白，舍不得扔。",
+      "放进玻璃杯，加自来水到根部。第一周长出白色新根，第二周顶上冒出绿色新芽。",
+      "每三天换一次水，每剪一次要留两厘米。到第四十天，已经剪了四轮，没再买过葱。"
+    ]
+  }
+];
+
+const CATEGORIES = ["全部", "田间笔记", "室内植物", "思考", "季节", "年度总结", "实验"];
+
+/* =========================================================
+   PLACEHOLDERS (hand-built SVG patterns — no illustrations)
+========================================================= */
+function PlaceholderThumb({ seed = 0, label }) {
+  // striped earthy placeholder with small caption
+  const palettes = [
+    ["#D9CFB4", "#B8A87A"],
+    ["#C8D0B4", "#8FA075"],
+    ["#E0D5C2", "#B59D78"],
+    ["#BFC7B3", "#7D8E6E"],
+    ["#D4C2A8", "#9C7F58"],
+    ["#C9D4C2", "#889B82"]
+  ];
+  const [a, b] = palettes[seed % palettes.length];
+  const stripes = Array.from({ length: 14 }, (_, i) => (
+    <rect key={i} x={i * 30} y="0" width="14" height="100%" fill={b} opacity="0.4" />
+  ));
+  return (
+    <svg className="ph-illus" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+      <rect width="400" height="300" fill={a} />
+      {stripes}
+      <rect x="20" y="20" width="60" height="2" fill="#1a1a17" opacity="0.5" />
+      <text x="20" y="48" fontFamily="JetBrains Mono, monospace" fontSize="10" fill="#1a1a17" opacity="0.55" letterSpacing="1.4">
+        {(label || "GARDEN JOURNAL").toUpperCase()}
+      </text>
+      <text x="20" y="280" fontFamily="JetBrains Mono, monospace" fontSize="9" fill="#1a1a17" opacity="0.4" letterSpacing="1.2">
+        PLACEHOLDER · DROP PHOTO HERE
+      </text>
+    </svg>
+  );
+}
+
+function SproutMark({ color = "currentColor" }) {
+  // minimal two-leaf sprout
+  return (
+    <svg viewBox="0 0 32 32" width="100%" height="100%" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round">
+      <path d="M16 28 V14" />
+      <path d="M16 14 C 10 14, 6 10, 6 5 C 11 5, 16 8, 16 14 Z" fill={color} fillOpacity="0.15" />
+      <path d="M16 18 C 22 18, 26 14, 26 9 C 21 9, 16 12, 16 18 Z" fill={color} fillOpacity="0.15" />
+    </svg>
+  );
+}
+
+/* =========================================================
+   TOP BAR
+========================================================= */
+const TOOLS = [
+  { key: "portal",    emoji: "🏛",  title: "Portal",    cn: "工作台",      sub: "Workspace hub",        href: "tools/portal.html" },
+  { key: "shop",      emoji: "🧋", title: "Boba Store", cn: "商店",        sub: "Flash-sale inventory", href: "tools/shop.html" },
+  { key: "orders",    emoji: "🧾", title: "My Orders",  cn: "我的订单",    sub: "Transaction history",  href: "tools/orders.html" },
+  { key: "workspace", emoji: "🛠", title: "Pro Tools",  cn: "生产力引擎",  sub: "AI · engine config",   href: "tools/workspace.html" },
+];
+
+function ToolsLauncher() {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false); };
+    const onEsc = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
+
+  return (
+    <div className="tools-wrap" ref={wrapRef}>
+      <button className={`tools-btn ${open ? "open" : ""}`} onClick={() => setOpen(o => !o)}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3"  y="3"  width="7" height="7" rx="1"/>
+          <rect x="14" y="3"  width="7" height="7" rx="1"/>
+          <rect x="3"  y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        Tools
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </button>
+      <div className={`tools-menu ${open ? "open" : ""}`}>
+        <div className="tools-menu-head">
+          <span>Workspace · Switch</span>
+          <span>⌘K</span>
+        </div>
+        {TOOLS.map(t => (
+          <a key={t.key} href={t.href} className="tools-item">
+            <div className="tools-item-ico">{t.emoji}</div>
+            <div className="tools-item-body">
+              <div className="tools-item-title">{t.title} <span className="cn">· {t.cn}</span></div>
+              <div className="tools-item-sub">{t.sub}</div>
+            </div>
+            <span className="tools-item-arrow">→</span>
+          </a>
+        ))}
+        <div className="tools-menu-foot">
+          <span>xtp Workspace</span>
+          <span>v0.1</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TopBar({ user, onLogin, onLogout, route, setRoute, onCompose }) {
+  return (
+    <header className="topbar">
+      <div className="wrap topbar-inner">
+        <div className="brand" onClick={() => setRoute({ name: "index" })}>
+          <span className="brand-mark"><SproutMark color="var(--moss)" /></span>
+          <div>
+            <div className="brand-name">xtp的小菜园</div>
+            <div className="brand-sub">Est. 2024 · Garden Journal № 01</div>
+          </div>
+        </div>
+        <nav className="nav">
+          <a className={route.name === "index" ? "active" : ""} onClick={() => setRoute({ name: "index" })}>Journal</a>
+          <a onClick={() => alert('关于页面——暂时留空')}>About</a>
+          <a onClick={() => alert('归档页面——暂时留空')}>Archive</a>
+          <ToolsLauncher />
+          {user ? (
+            <>
+              <button className="pill primary" onClick={onCompose}>+ New Entry</button>
+              <button className="pill" onClick={onLogout} title={`Signed in as ${user.name}`}>
+                {user.name} · Sign out
+              </button>
+            </>
+          ) : (
+            <button className="pill" onClick={onLogin}>Sign in</button>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+/* =========================================================
+   INDEX PAGE
+========================================================= */
+function IndexPage({ posts, setRoute }) {
+  const [cat, setCat] = useState("全部");
+  const [q, setQ] = useState("");
+
+  const filtered = useMemo(() => {
+    return posts.filter(p => {
+      if (cat !== "全部" && p.tag !== cat) return false;
+      if (q && !(p.title + p.excerpt).toLowerCase().includes(q.toLowerCase())) return false;
+      return true;
+    });
+  }, [posts, cat, q]);
+
+  const now = new Date();
+  const nowStr = `${String(now.getDate()).padStart(2, "0")} · ${now.toLocaleString('en', { month: 'short' }).toUpperCase()} · ${now.getFullYear()}`;
+
+  return (
+    <>
+      <section className="wrap hero">
+        <div className="hero-meta">
+          <span>Journal № 01 / {posts.length.toString().padStart(2, "0")} Entries</span>
+          <span>{nowStr}</span>
+        </div>
+        <h1>
+          a small <em>garden,</em><br/>
+          tended slowly.
+        </h1>
+        <div className="hero-sub">
+          <p className="lead">
+            这里是 xtp 的小菜园——一块三平米的阳台，一个装满种子的抽屉，和几年来和植物相处的笔记。写得慢，种得更慢。
+          </p>
+          <div className="stats">
+            <div className="stat-row"><span className="k">Editor</span><span className="v">xtp</span></div>
+            <div className="stat-row"><span className="k">Since</span><span className="v">Spring, 2024</span></div>
+            <div className="stat-row"><span className="k">Cadence</span><span className="v">Monthly, ±</span></div>
+            <div className="stat-row"><span className="k">Plants, alive</span><span className="v">23</span></div>
+            <div className="stat-row"><span className="k">Plants, composted</span><span className="v">11</span></div>
+          </div>
+        </div>
+
+        <div className="filter">
+          <span className="filter-label">Filter</span>
+          {CATEGORIES.map(c => (
+            <button key={c} className={`chip ${cat === c ? "on" : ""}`} onClick={() => setCat(c)}>
+              {c}
+            </button>
+          ))}
+          <div className="filter-right">
+            <label className="search-box">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+              </svg>
+              <input placeholder="Search entries" value={q} onChange={e => setQ(e.target.value)} />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section className="wrap posts">
+        {filtered.length === 0 ? (
+          <div style={{padding: '80px 0', textAlign: 'center', fontFamily: 'var(--mono)', color: 'var(--ink-mute)', fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase'}}>
+            — nothing to harvest here —
+          </div>
+        ) : filtered.map((p, i) => (
+          <article key={p.id} className="post" onClick={() => setRoute({ name: "detail", id: p.id })}>
+            <div className="post-num">№ {String(filtered.length - i).padStart(2, "0")}</div>
+            <div className="post-thumb">
+              <PlaceholderThumb seed={p.id} label={p.titleEn} />
+            </div>
+            <div className="post-body">
+              <div className="post-meta">
+                <span>{p.date}</span>
+                <span className="dot"></span>
+                <span className="tag">{p.tag}</span>
+                <span className="dot"></span>
+                <span>{p.read}</span>
+              </div>
+              <h2 className="post-title">
+                <span className="cn-part">{p.title}</span>
+              </h2>
+              <p className="post-excerpt">{p.excerpt}</p>
+            </div>
+            <div className="post-cta">
+              <div className="post-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M5 12h14M13 5l7 7-7 7"/>
+                </svg>
+              </div>
+              <span className="post-read">Read →</span>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <Footer />
+    </>
+  );
+}
+
+/* =========================================================
+   DETAIL PAGE
+========================================================= */
+function DetailPage({ post, setRoute }) {
+  if (!post) return null;
+  return (
+    <section className="wrap detail">
+      <a className="detail-back" onClick={() => setRoute({ name: "index" })}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+        Back to journal
+      </a>
+      <div className="detail-meta">
+        <span>{post.date}</span>
+        <span className="dot" style={{width:3, height:3, borderRadius:'50%', background:'var(--ink-mute)'}}></span>
+        <span style={{color:'var(--moss)'}}>{post.tag}</span>
+        <span className="dot" style={{width:3, height:3, borderRadius:'50%', background:'var(--ink-mute)'}}></span>
+        <span>{post.read}</span>
+      </div>
+      <h1><span className="cn-part">{post.title}</span></h1>
+      <div className="detail-hero">
+        <PlaceholderThumb seed={post.id} label={post.titleEn} />
+      </div>
+      <div className="detail-body">
+        <p className="lead">{post.excerpt}</p>
+        {post.body.map((para, i) => <p key={i}>{para}</p>)}
+        <blockquote>种一棵植物，是在和时间做朋友。它不会因为你着急而长得更快。</blockquote>
+        <p style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-mute)', textTransform:'uppercase', letterSpacing:'0.14em', marginTop: 60, paddingTop: 24, borderTop: '1px solid var(--rule)'}}>
+          — xtp, {post.dateShort}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   LOGIN MODAL
+========================================================= */
+function LoginModal({ onClose, onSuccess }) {
+  const [name, setName] = useState("");
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const submit = (e) => {
+    e.preventDefault();
+    setErr("");
+    if (!name.trim()) { setErr("请输入用户名"); return; }
+    setLoading(true);
+    setTimeout(() => {
+      if (pw !== "garden") {
+        setErr("密码不对。提示见下方。");
+        setLoading(false);
+        return;
+      }
+      onSuccess({ name: name.trim() });
+    }, 500);
+  };
+
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal">
+        <button className="modal-close" onClick={onClose}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M6 6l12 12M6 18L18 6"/>
+          </svg>
+        </button>
+        <div className="modal-label">Gardener's entrance</div>
+        <h2 className="modal-title">Sign <em>in</em>.</h2>
+        <p className="modal-sub">只有菜园的主人才能播下新的文章。</p>
+        <form onSubmit={submit}>
+          <div className="field">
+            <label>Name</label>
+            <input ref={inputRef} value={name} onChange={e => setName(e.target.value)} placeholder="xtp" />
+          </div>
+          <div className="field">
+            <label>Passphrase</label>
+            <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="••••••" />
+          </div>
+          {err && <div className="form-error">{err}</div>}
+          <button className="btn-primary" disabled={loading}>{loading ? "Checking..." : "Enter the garden →"}</button>
+          <div className="form-hint">Demo passphrase — <code>garden</code></div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   COMPOSER
+========================================================= */
+function Composer({ user, onPublish, onCancel }) {
+  const [title, setTitle] = useState("");
+  const [excerpt, setExcerpt] = useState("");
+  const [body, setBody] = useState("");
+  const [tag, setTag] = useState("田间笔记");
+  const [thumb, setThumb] = useState(99);
+
+  const wordCount = (body || "").length;
+  const canPublish = title.trim() && body.trim();
+
+  const publish = () => {
+    if (!canPublish) return;
+    const now = new Date();
+    const month = now.toLocaleString('en', { month: 'short' });
+    const post = {
+      id: Date.now(),
+      date: `${month}, ${now.getFullYear()}`,
+      dateShort: `${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()}`,
+      title: title.trim(),
+      titleEn: "NEW ENTRY",
+      tag,
+      read: `${Math.max(1, Math.round(wordCount / 250))} min`,
+      excerpt: excerpt.trim() || body.slice(0, 120),
+      body: body.split(/\n+/).filter(Boolean)
+    };
+    onPublish(post);
+  };
+
+  return (
+    <section className="wrap composer">
+      <div className="composer-bar">
+        <div className="left">
+          <span className="dot"></span>
+          Drafting · Signed in as <span style={{color:'var(--ink)'}}>{user.name}</span>
+        </div>
+        <div className="composer-actions">
+          <button className="btn-ghost" onClick={onCancel}>Discard</button>
+          <button className="btn-solid" onClick={publish} disabled={!canPublish} style={{opacity: canPublish ? 1 : 0.35, cursor: canPublish ? 'pointer' : 'not-allowed'}}>
+            Plant entry →
+          </button>
+        </div>
+      </div>
+      <div className="compose-grid">
+        <div>
+          <textarea
+            className="compose-input title"
+            rows={2}
+            placeholder="A title, slow and simple..."
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+          />
+          <textarea
+            className="compose-input excerpt"
+            rows={2}
+            placeholder="一段简短的摘要 · a one-line excerpt"
+            value={excerpt}
+            onChange={e => setExcerpt(e.target.value)}
+          />
+          <textarea
+            className="compose-input body"
+            rows={18}
+            placeholder="写下今天的菜园笔记。换行即分段。&#10;&#10;今天天气——&#10;种了什么——&#10;观察到什么——"
+            value={body}
+            onChange={e => setBody(e.target.value)}
+          />
+        </div>
+        <aside className="compose-side">
+          <div className="side-block" style={{borderTop:'none', paddingTop:0}}>
+            <div className="side-label">Category</div>
+            <div className="side-tags">
+              {CATEGORIES.filter(c => c !== "全部").map(c => (
+                <button key={c} className={`side-tag ${tag === c ? "on" : ""}`} onClick={() => setTag(c)}>{c}</button>
+              ))}
+            </div>
+          </div>
+          <div className="side-block">
+            <div className="side-label">Cover · placeholder pattern</div>
+            <div className="side-thumb-picker">
+              {[0,1,2,3,4,5].map(i => (
+                <div key={i} className={`side-thumb ${thumb === i ? "on" : ""}`} onClick={() => setThumb(i)}>
+                  <PlaceholderThumb seed={i} label="COVER" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="side-block">
+            <div className="side-label">Read-out</div>
+            <div className="count-readout"><span>Characters</span><span>{wordCount}</span></div>
+            <div className="count-readout"><span>Est. read</span><span>{Math.max(1, Math.round(wordCount / 250))} min</span></div>
+            <div className="count-readout"><span>Paragraphs</span><span>{body.split(/\n+/).filter(Boolean).length}</span></div>
+          </div>
+          <div className="side-block">
+            <div className="side-label">Publishing to</div>
+            <div style={{fontFamily:'var(--serif)', fontStyle:'italic', fontSize: 22, letterSpacing:'-0.02em'}}>
+              xtp的小菜园
+            </div>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-mute)', marginTop: 6, letterSpacing:'0.1em'}}>
+              JOURNAL № 01 · PUBLIC
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+function Footer() {
+  return (
+    <footer>
+      <div className="wrap">
+        <div className="footer-grid">
+          <div>
+            <div className="footer-title">Correspondence</div>
+            <p className="footer-big">Hello <em>from</em><br/>the garden.</p>
+          </div>
+          <div>
+            <div className="footer-title">Pages</div>
+            <div className="footer-list">
+              <a>Journal</a><a>About</a><a>Archive</a><a>Plant list</a>
+            </div>
+          </div>
+          <div>
+            <div className="footer-title">Follow</div>
+            <div className="footer-list">
+              <a>RSS</a><a>Email</a><a>Notebook</a>
+            </div>
+          </div>
+          <div>
+            <div className="footer-title">Colophon</div>
+            <div className="footer-list" style={{fontSize: 13}}>
+              <span>Set in Fraunces &<br/>Noto Serif SC.</span>
+              <span>Hand-tended since<br/>Spring, 2024.</span>
+            </div>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <span>© xtp · {new Date().getFullYear()}</span>
+          <span>Journal № 01 · Issue ∞</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* =========================================================
+   ROOT APP
+========================================================= */
+function App() {
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("garden.user")) || null; } catch { return null; }
+  });
+  const [posts, setPosts] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("garden.posts"));
+      return saved && Array.isArray(saved) ? saved : INITIAL_POSTS;
+    } catch { return INITIAL_POSTS; }
+  });
+  const [route, setRoute] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("garden.route")) || { name: "index" }; } catch { return { name: "index" }; }
+  });
+  const [showLogin, setShowLogin] = useState(false);
+  const [pendingCompose, setPendingCompose] = useState(false);
+
+  useEffect(() => { localStorage.setItem("garden.user", JSON.stringify(user)); }, [user]);
+  useEffect(() => { localStorage.setItem("garden.posts", JSON.stringify(posts)); }, [posts]);
+  useEffect(() => {
+    localStorage.setItem("garden.route", JSON.stringify(route));
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [route]);
+
+  const handleCompose = () => {
+    if (user) setRoute({ name: "compose" });
+    else { setPendingCompose(true); setShowLogin(true); }
+  };
+
+  const handleLoginSuccess = (u) => {
+    setUser(u);
+    setShowLogin(false);
+    if (pendingCompose) {
+      setPendingCompose(false);
+      setRoute({ name: "compose" });
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    if (route.name === "compose") setRoute({ name: "index" });
+  };
+
+  const handlePublish = (p) => {
+    setPosts(prev => [p, ...prev]);
+    setRoute({ name: "detail", id: p.id });
+  };
+
+  const detailPost = route.name === "detail" ? posts.find(x => x.id === route.id) : null;
+
+  return (
+    <>
+      <TopBar
+        user={user}
+        route={route}
+        setRoute={setRoute}
+        onLogin={() => setShowLogin(true)}
+        onLogout={handleLogout}
+        onCompose={handleCompose}
+      />
+      {route.name === "index" && <IndexPage posts={posts} setRoute={setRoute} />}
+      {route.name === "detail" && <DetailPage post={detailPost} setRoute={setRoute} />}
+      {route.name === "compose" && user && <Composer user={user} onPublish={handlePublish} onCancel={() => setRoute({ name: "index" })} />}
+      {showLogin && <LoginModal onClose={() => { setShowLogin(false); setPendingCompose(false); }} onSuccess={handleLoginSuccess} />}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orders · xtp Workspace</title>
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+<div id="nav"></div>
+<script src="_nav.js" data-active="orders"></script>
+
+<main class="page">
+  <header class="page-hero fade-in">
+    <h1>你的历史订单。</h1>
+    <p class="subtitle">所有的交易记录——按时间倒序排列。</p>
+  </header>
+
+  <div id="orders" style="display:flex; flex-direction:column; gap:14px;"></div>
+</main>
+
+<script>
+const API = "https://goflashsale.onrender.com";
+const token = () => localStorage.getItem("my_token") || "";
+
+async function fetchOrders() {
+  try {
+    const r = await fetch(`${API}/api/orders`, {
+      headers: { "Authorization": token() },
+      signal: AbortSignal.timeout(4000),
+    });
+    const d = await r.json();
+    if (d.my_orders && Array.isArray(d.my_orders) && d.my_orders.length) return d.my_orders;
+  } catch (_) {}
+  // fallback to mock orders stored locally
+  return JSON.parse(localStorage.getItem("mock.orders") || "[]");
+}
+
+function render(orders) {
+  const el = document.getElementById("orders");
+  if (!orders.length) {
+    el.innerHTML = `
+      <div class="empty">
+        <span class="big">🧾</span>
+        暂无订单 · 去 <a href="shop.html" style="color:var(--blue-accent); text-transform:none; letter-spacing:0;">商店</a> 逛逛
+      </div>`;
+    return;
+  }
+  el.innerHTML = orders.slice().reverse().map((o, i) => `
+    <div class="bento-card fade-in" style="display:flex; justify-content:space-between; align-items:center; padding: 22px 28px; animation-delay:${i * 0.03}s;">
+      <div style="display:flex; align-items:center; gap:18px;">
+        <div style="font-size:36px;">🧋</div>
+        <div>
+          <h3 style="margin:0 0 6px; font-size:17px; letter-spacing:-0.005em;">
+            ${o.Product ? o.Product.Name : "未知商品"}
+          </h3>
+          <div style="font-family: var(--mono); font-size:12px; color: var(--text-mute); letter-spacing:0.04em;">
+            #${o.ID} · ${o.CreatedAt ? new Date(o.CreatedAt).toLocaleString("zh-CN", {year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"}) : ""}
+          </div>
+        </div>
+      </div>
+      <span class="badge live">✓ 交易成功</span>
+    </div>
+  `).join("");
+}
+
+fetchOrders().then(render);
+</script>
+</body>
+</html>

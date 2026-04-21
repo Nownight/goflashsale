@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boba Store · xtp Workspace</title>
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+<div id="nav"></div>
+<script src="_nav.js" data-active="shop"></script>
+
+<main class="page">
+  <header class="page-hero fade-in">
+    <h1>Store. <span class="mute">选购您心仪的商品。</span></h1>
+    <p class="subtitle">库存实时刷新。下单即锁定——快人一步。</p>
+  </header>
+
+  <div id="products" class="bento-grid"></div>
+</main>
+
+<script>
+const API = "https://goflashsale.onrender.com";
+
+// Mock fallback — used when API is unreachable
+const MOCK = [
+  { ID: 1, Name: "冰萃乌龙桃桃",         Stock: 47, Price: 18.0, emoji: "🍑", tag: "招牌" },
+  { ID: 2, Name: "芋泥波波奶",             Stock: 12, Price: 22.0, emoji: "🍠", tag: "新品" },
+  { ID: 3, Name: "生椰拿铁（冷）",         Stock: 0,  Price: 25.0, emoji: "🥥", tag: "售罄" },
+  { ID: 4, Name: "抹茶厚乳拿铁",           Stock: 89, Price: 24.0, emoji: "🍵", tag: "热门" },
+  { ID: 5, Name: "荔枝冰冰茉",             Stock: 3,  Price: 20.0, emoji: "🧋", tag: "限量" },
+  { ID: 6, Name: "黑糖珍珠鲜奶",           Stock: 34, Price: 19.0, emoji: "🥛", tag: "经典" },
+];
+
+const token = () => localStorage.getItem("my_token") || "";
+
+async function fetchProducts() {
+  try {
+    const r = await fetch(`${API}/products`, { signal: AbortSignal.timeout(4000) });
+    const data = await r.json();
+    if (Array.isArray(data) && data.length) return data.map(p => ({ ...p, emoji: p.emoji || "📦", tag: p.tag || "" }));
+  } catch (_) {}
+  return MOCK;
+}
+
+function stockBadge(stock) {
+  if (stock === 0) return `<span class="badge gone">● 售罄</span>`;
+  if (stock < 10)   return `<span class="badge low">● 仅剩 ${stock}</span>`;
+  return `<span class="badge live">● 库存 ${stock}</span>`;
+}
+
+function render(products) {
+  const el = document.getElementById("products");
+  if (!products.length) {
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1;"><span class="big">📦</span>货架空空如也</div>`;
+    return;
+  }
+  el.innerHTML = products.map((p, i) => `
+    <article class="bento-card fade-in" style="display:flex; flex-direction:column; animation-delay:${i * 0.04}s;">
+      <div style="font-size:48px; margin-bottom:16px;">${p.emoji || "📦"}</div>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+        ${p.tag ? `<span class="badge" style="background:rgba(41,151,255,0.14); color:var(--blue-accent);">${p.tag}</span>` : ""}
+        ${stockBadge(p.Stock)}
+      </div>
+      <h3 style="font-size:22px; margin:12px 0 6px; letter-spacing:-0.01em;">${p.Name}</h3>
+      <p style="margin:0 0 24px; color:var(--text-mute); font-size:13px;">SKU #${String(p.ID).padStart(4, "0")}</p>
+      <div style="margin-top:auto; display:flex; justify-content:space-between; align-items:center; padding-top:16px; border-top:1px solid var(--border);">
+        <span style="font-size:22px; font-weight:700; letter-spacing:-0.01em;">¥${Number(p.Price).toFixed(2)}</span>
+        <button class="apple-btn blue" ${p.Stock === 0 ? "disabled style='opacity:0.4; cursor:not-allowed;'" : ""} data-id="${p.ID}" data-name="${p.Name}">
+          ${p.Stock === 0 ? "已售罄" : "立即抢购"}
+        </button>
+      </div>
+    </article>
+  `).join("");
+
+  el.querySelectorAll("button[data-id]").forEach(b => {
+    b.addEventListener("click", () => buy(Number(b.dataset.id), b.dataset.name));
+  });
+}
+
+async function buy(id, name) {
+  if (!token()) {
+    toast("请先登录 Workspace 后再下单", "warn");
+    setTimeout(() => location.href = "workspace.html", 1200);
+    return;
+  }
+  try {
+    const r = await fetch(`${API}/api/order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": token() },
+      body: JSON.stringify({ product_id: id }),
+      signal: AbortSignal.timeout(5000),
+    });
+    const d = await r.json();
+    if (d.order_id) {
+      toast(`🎉 抢购成功 · 订单 #${d.order_id}`);
+      init();
+      return;
+    }
+    throw new Error(d.error || "fail");
+  } catch (_) {
+    // local mock order
+    const orders = JSON.parse(localStorage.getItem("mock.orders") || "[]");
+    const mockId = "MK" + Date.now().toString().slice(-6);
+    orders.push({ ID: mockId, Product: { Name: name }, CreatedAt: new Date().toISOString() });
+    localStorage.setItem("mock.orders", JSON.stringify(orders));
+    toast(`✓ 模拟订单已记录 · #${mockId}`);
+    init();
+  }
+}
+
+function toast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2400);
+}
+
+async function init() {
+  const products = await fetchProducts();
+  render(products);
+}
+init();
+</script>
+</body>
+</html>

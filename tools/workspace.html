@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workspace · xtp Pro</title>
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+<div id="nav"></div>
+<script src="_nav.js" data-active="workspace"></script>
+
+<main class="page" style="max-width: 800px;">
+  <header class="page-hero fade-in">
+    <h1>Workspace.</h1>
+    <p class="subtitle">你的私人生产力中心——配置一次，全局生效。</p>
+  </header>
+
+  <!-- Mini-app launchers -->
+  <section class="bento-grid fade-in" style="margin-bottom: 40px;">
+    <div class="bento-card clickable" onclick="alert('赛博算命 Pro——微前端待接入 🧭\\n（来自原仓库 /suanming.html）')" style="padding: 28px; text-align: center;">
+      <div style="font-size:44px; margin-bottom: 14px;">🧭</div>
+      <h3 style="margin:0 0 6px;">赛博算命 Pro</h3>
+      <p style="margin:0; color: var(--text-mute); font-size:13px;">AI 深度命理决策系统</p>
+    </div>
+    <div class="bento-card clickable" onclick="alert('小红书生成器——微前端待接入 📝\\n（来自原仓库 /xiaohongshu.html）')" style="padding: 28px; text-align: center;">
+      <div style="font-size:44px; margin-bottom: 14px;">📝</div>
+      <h3 style="margin:0 0 6px;">小红书生成器</h3>
+      <p style="margin:0; color: var(--text-mute); font-size:13px;">一键生成爆款图文卡片</p>
+    </div>
+  </section>
+
+  <!-- Auth + AI config -->
+  <div class="bento-card fade-in" style="padding: 36px;">
+    <h3 style="margin:0 0 6px; font-size:20px; letter-spacing:-0.01em;">账户 & 会话</h3>
+    <p style="margin:0 0 24px; font-size:13px; color: var(--text-mute);">
+      登录后才能在 <b style="color:var(--text);">商店</b> 下单与查看订单。
+    </p>
+    <div id="auth-box"></div>
+  </div>
+
+  <div class="bento-card fade-in" style="padding: 36px; margin-top: 22px;">
+    <h3 style="margin:0 0 6px; font-size:20px; letter-spacing:-0.01em;">全局 AI 驱动引擎</h3>
+    <p style="margin:0 0 24px; font-size:13px; color: var(--text-mute);">
+      设置一次，上方所有工具自动挂载该模型引擎。
+    </p>
+
+    <div class="segmented" style="margin-bottom: 28px;">
+      <button id="mode-official">官方 API 模式</button>
+      <button id="mode-web2api">代理模式 (Web2API)</button>
+    </div>
+
+    <div id="ai-panel"></div>
+    <button class="apple-btn full" id="save-ai" style="margin-top: 28px;">保存并激活配置</button>
+  </div>
+</main>
+
+<script>
+const API = "https://goflashsale.onrender.com";
+
+/* ---------- AUTH ---------- */
+function currentUser() {
+  try { return JSON.parse(localStorage.getItem("garden.user")) || null; } catch { return null; }
+}
+function renderAuth() {
+  const box = document.getElementById("auth-box");
+  const u = currentUser();
+  const token = localStorage.getItem("my_token") || "";
+
+  if (u && token) {
+    box.innerHTML = `
+      <div style="display:flex; align-items:center; gap:16px; padding: 18px; background: #131315; border-radius:14px; border:1px solid var(--border);">
+        <div style="width:44px; height:44px; border-radius:50%; background: linear-gradient(135deg, #2997ff, #5856d6); display:flex; align-items:center; justify-content:center; font-weight:700;">
+          ${u.name.charAt(0).toUpperCase()}
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:15px;">${u.name}</div>
+          <div style="font-family:var(--mono); font-size:11px; color: var(--text-mute); letter-spacing:0.04em;">
+            TOKEN · ${token.slice(0, 12)}…
+          </div>
+        </div>
+        <button class="apple-btn ghost" id="logout-btn">退出登录</button>
+      </div>`;
+    document.getElementById("logout-btn").onclick = () => {
+      localStorage.removeItem("my_token");
+      localStorage.removeItem("garden.user");
+      renderAuth();
+    };
+    return;
+  }
+
+  box.innerHTML = `
+    <form id="login-form" style="display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:end;">
+      <div>
+        <label class="field-label">用户名</label>
+        <input class="apple-input" id="login-user" type="text" placeholder="Apple ID / 用户名" required>
+      </div>
+      <div>
+        <label class="field-label">密码</label>
+        <input class="apple-input" id="login-pw" type="password" placeholder="••••••••" required>
+      </div>
+      <button class="apple-btn blue" type="submit">登录 →</button>
+    </form>
+    <div style="margin-top:14px; font-size:12px; color:var(--text-mute);">
+      未注册？ 提交时若账号不存在将自动尝试注册。
+    </div>`;
+  document.getElementById("login-form").onsubmit = async (e) => {
+    e.preventDefault();
+    const Username = document.getElementById("login-user").value.trim();
+    const Password = document.getElementById("login-pw").value;
+    await doLogin(Username, Password);
+  };
+}
+async function doLogin(Username, Password) {
+  // try remote login
+  try {
+    const r = await fetch(`${API}/login`, {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ Username, Password }),
+      signal: AbortSignal.timeout(4000),
+    });
+    const d = await r.json();
+    if (d.token) {
+      localStorage.setItem("my_token", d.token);
+      localStorage.setItem("garden.user", JSON.stringify({ name: Username }));
+      toast("✓ 登录成功");
+      renderAuth();
+      return;
+    }
+  } catch (_) {}
+  // fall back to local mock login
+  const mockToken = "MK." + btoa(Username + ":" + Date.now()).slice(0, 28);
+  localStorage.setItem("my_token", mockToken);
+  localStorage.setItem("garden.user", JSON.stringify({ name: Username }));
+  toast("✓ 本地模拟登录成功（API 未连接）");
+  renderAuth();
+}
+
+/* ---------- AI CONFIG ---------- */
+let aiMode = localStorage.getItem("ai_mode") || "official";
+
+function renderAI() {
+  document.getElementById("mode-official").classList.toggle("on", aiMode === "official");
+  document.getElementById("mode-web2api").classList.toggle("on", aiMode === "web2api");
+  const panel = document.getElementById("ai-panel");
+  if (aiMode === "official") {
+    const provider = localStorage.getItem("api_provider") || "deepseek";
+    const key = localStorage.getItem("api_key") || "";
+    panel.innerHTML = `
+      <label class="field-label">选择大模型服务商</label>
+      <select class="apple-input" id="ai-provider" style="margin-bottom: 18px;">
+        <option value="deepseek" ${provider==="deepseek"?"selected":""}>DeepSeek V2 (推荐)</option>
+        <option value="minimax" ${provider==="minimax"?"selected":""}>MiniMax (海螺 AI)</option>
+        <option value="openai"  ${provider==="openai" ?"selected":""}>OpenAI (GPT-4o)</option>
+      </select>
+      <label class="field-label">API Key</label>
+      <input class="apple-input" id="ai-key" type="password" placeholder="sk-..." value="${key}">
+    `;
+  } else {
+    const tk = localStorage.getItem("gpt_access_token") || "";
+    panel.innerHTML = `
+      <label class="field-label">Access Token (F12 从 chat.openai.com 提取)</label>
+      <input class="apple-input" id="ai-webtoken" type="password" placeholder="eyJhbGciOi..." value="${tk}">
+      <p style="font-size:12px; color:var(--text-mute); margin-top:12px;">
+        * 需要配合本地 openai-oauth 代理运行。
+      </p>
+    `;
+  }
+}
+document.getElementById("mode-official").onclick = () => { aiMode = "official"; renderAI(); };
+document.getElementById("mode-web2api").onclick = () => { aiMode = "web2api";  renderAI(); };
+document.getElementById("save-ai").onclick = () => {
+  localStorage.setItem("ai_mode", aiMode);
+  if (aiMode === "official") {
+    localStorage.setItem("api_provider", document.getElementById("ai-provider").value);
+    localStorage.setItem("api_key",      document.getElementById("ai-key").value);
+  } else {
+    localStorage.setItem("gpt_access_token", document.getElementById("ai-webtoken").value);
+  }
+  toast("⚙️ 全局引擎配置已保存");
+};
+
+/* ---------- TOAST ---------- */
+function toast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2400);
+}
+
+renderAuth();
+renderAI();
+</script>
+</body>
+</html>
