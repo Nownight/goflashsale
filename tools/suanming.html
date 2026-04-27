@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 深度命理决策系统 Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #000000; 
+            color: #f5f5f7; 
+            -webkit-font-smoothing: antialiased;
+        }
+        /* 苹果风平滑入场动画 */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        /* 苹果 Bento 卡片风格 */
+        .bento-card {
+            background: #1c1c1e;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 24px;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .bento-card:hover { transform: translateY(-2px); }
+
+        /* 输入框样式 */
+        .form-label { display: block; font-size: 0.875rem; font-weight: 600; color: #86868b; margin-bottom: 8px; }
+        .form-select, .form-input { 
+            width: 100%; background: #000000; border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 12px; padding: 12px 16px; font-size: 0.95rem; color: #fff; transition: all 0.2s; 
+        }
+        .form-select:focus, .form-input:focus { 
+            border-color: #2997ff; outline: none; box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.2); 
+        }
+
+        /* 暗色 Markdown 输出样式 */
+        .prose h3 { margin-top: 1.5em; color: #2997ff; font-weight: 700; }
+        .prose strong { color: #fff; background: rgba(41, 151, 255, 0.2); padding: 0 4px; border-radius: 4px; }
+        .prose p, .prose li { color: #d2d2d7; line-height: 1.7; }
+        .loader { width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.1); border-bottom-color: #2997ff; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div class="max-w-4xl mx-auto fade-in">
+        <div class="text-center mb-10 mt-6">
+            <div class="text-5xl mb-4">🧭</div>
+            <h1 class="text-4xl font-bold tracking-tight mb-2">赛博算命 Pro</h1>
+            <p class="text-[#86868b]">AI 深度命理决策系统 · 平台全局引擎驱动</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bento-card space-y-4">
+                <h2 class="font-bold text-xl text-white mb-6 border-b border-white/10 pb-4">📅 命盘基础数据</h2>
+                <div><label class="form-label">姓名</label><input type="text" id="name" class="form-input" placeholder="请输入姓名"></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="form-label">性别</label><select id="gender" class="form-select"><option value="男">男 (乾造)</option><option value="女">女 (坤造)</option></select></div>
+                    <div><label class="form-label">历法</label><select id="calendarType" class="form-select"><option value="公历">公历</option><option value="农历">农历</option></select></div>
+                </div>
+                <div><label class="form-label">出生日期</label><input type="date" id="birthDate" class="form-input" style="color-scheme: dark;"></div>
+                <div>
+                    <label class="form-label">出生时辰</label>
+                    <select id="birthShichen" class="form-select mb-2" onchange="document.getElementById('birthTime').style.display = this.value === 'specific' ? 'block' : 'none'">
+                        <option value="specific">🕒 输入精确时间 (推荐)</option>
+                        <option value="unknown">❓ 时间不详 (仅排三柱)</option>
+                        <option value="子时 (23:00-01:00)">子时 (23-01)</option>
+                        <option value="丑时 (01:00-03:00)">丑时 (01-03)</option>
+                    </select>
+                    <input type="time" id="birthTime" class="form-input" style="color-scheme: dark;">
+                </div>
+                <div><label class="form-label">出生地 (真太阳时)</label><input type="text" id="birthPlace" class="form-input" placeholder="例如：安徽省安庆市"></div>
+            </div>
+
+            <div class="bento-card space-y-4 flex flex-col justify-between">
+                <div>
+                    <h2 class="font-bold text-xl text-white mb-6 border-b border-white/10 pb-4">🧬 命理校正锚点</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="form-label">1. 性格自评 (判断强弱)</label>
+                            <select id="personality" class="form-select">
+                                <option value="" disabled selected>请选择...</option>
+                                <option value="强势/激进">🐯 激进自信，喜欢掌控 (偏身旺)</option>
+                                <option value="稳健/保守">🐢 稳健谨慎，寻求安全 (偏身弱)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">2. 当前身份/行业</label>
+                            <select id="careerType" class="form-select">
+                                <option value="" disabled selected>请选择...</option>
+                                <option value="在校学生">🎓 在校学生/科研</option>
+                                <option value="职场打工人">🏢 职场/体制内</option>
+                                <option value="自由职业/创业">💼 经商/自由职业</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">3. 核心诉求</label>
+                            <select id="focusArea" class="form-select">
+                                <option value="全方位综合排盘">🔮 全方位综合排盘</option>
+                                <option value="学业考试与升学">🎓 学业考试与升学</option> 
+                                <option value="搞钱策略与事业">💰 搞钱策略与风口</option>
+                                <option value="正缘桃花与婚姻">❤️ 正缘桃花与婚姻</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="calculate()" id="submitBtn" class="w-full mt-6 py-4 bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold rounded-full transition transform active:scale-95 text-lg">
+                    ✨ 开始深度推演
+                </button>
+            </div>
+        </div>
+
+        <div id="resultArea" class="hidden mt-8 bento-card min-h-[400px]">
+            <div class="border-b border-white/10 pb-4 flex justify-between items-center mb-6">
+                <h2 class="font-bold text-xl text-white">📜 命理决策报告</h2>
+                <div class="space-x-2">
+                    <button onclick="exportPdf()" class="text-xs bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full transition">💾 存为 PDF</button>
+                </div>
+            </div>
+            
+            <div id="loading" class="hidden py-16 text-center">
+                <div class="loader mb-4"></div>
+                <p class="text-white font-medium">正在连接平台 AI 引擎...</p>
+                <p class="text-[#86868b] text-sm mt-2">正在结合大流年与四柱排盘进行计算</p>
+            </div>
+
+            <div id="output" class="prose max-w-none text-left"></div>
+        </div>
+    </div>
+
+    <script>
+        async function calculate() {
+            // ==========================================
+            // 💡 架构师注入：读取 React 平台全局配置
+            // ==========================================
+            const aiMode = localStorage.getItem('ai_mode') || 'official';
+            let endpoint = '';
+            let authKey = '';
+            let requestModel = "deepseek-chat"; 
+
+            if (aiMode === 'official') {
+                const provider = localStorage.getItem('api_provider');
+                authKey = localStorage.getItem('api_key');
+                if (!authKey) return alert("❌ 请先在平台主页【生产力引擎】中配置 API Key！");
+                
+                if (provider === 'deepseek') { endpoint = 'https://api.deepseek.com/chat/completions'; requestModel = 'deepseek-chat'; }
+                else if (provider === 'minimax') { 
+    endpoint = 'https://api.minimaxi.com/v1/chat/completions'; 
+    targetModel = 'MiniMax-M2.7'; 
+}
+                else { endpoint = 'https://api.openai.com/v1/chat/completions'; requestModel = 'gpt-4o'; }
+            } else {
+                authKey = localStorage.getItem('gpt_access_token');
+                if (!authKey) return alert("❌ 请先在平台配置 Web Token！");
+                endpoint = 'http://localhost:8080/v1/chat/completions'; 
+                requestModel = 'gpt-4o';
+            }
+
+            const bDate = document.getElementById('birthDate').value;
+            if(!bDate) return alert('请填写出生日期');
+
+            const btn = document.getElementById('submitBtn');
+            const resultArea = document.getElementById('resultArea');
+            const loading = document.getElementById('loading');
+            const output = document.getElementById('output');
+
+            btn.disabled = true; btn.style.opacity = '0.5';
+            resultArea.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            output.innerHTML = '';
+            resultArea.scrollIntoView({ behavior: 'smooth' });
+
+            const systemPrompt = `你是一位精通传统八字与现代心理学的高级顾问。请基于排盘和用户的锚点进行推算，直接输出排版精美的Markdown报告。不要废话，语言客观、高级、克制。`;
+            const userPrompt = `姓名：${document.getElementById('name').value}，性别：${document.getElementById('gender').value}，生日：${bDate}，时间：${document.getElementById('birthShichen').value}，出生地：${document.getElementById('birthPlace').value}。诉求：${document.getElementById('focusArea').value}。`;
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authKey}` },
+                    body: JSON.stringify({
+                        model: requestModel,
+                        messages: [{role: "system", content: systemPrompt}, {role: "user", content: userPrompt}],
+                        temperature: 0.9
+                    })
+                });
+
+                const data = await res.json();
+                if(data.error) throw new Error(data.error.message);
+                output.innerHTML = marked.parse(data.choices[0].message.content);
+            } catch(e) {
+                output.innerHTML = `<div style="background: rgba(255,59,48,0.1); color: #ff3b30; padding: 16px; border-radius: 12px;">❌ 平台引擎拦截：${e.message}</div>`;
+            } finally {
+                loading.classList.add('hidden');
+                btn.disabled = false; btn.style.opacity = '1';
+            }
+        }
+
+        function exportPdf() {
+            html2pdf().set({ margin:10, filename: '赛博算命报告.pdf', html2canvas:{scale:2}, jsPDF:{unit:'mm', format:'a4'} }).from(document.getElementById('output')).save();
+        }
+    </script>
+</body>
+</html>

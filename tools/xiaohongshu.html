@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>小红书文案生成器 Pro Max</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   🍎 Pro Max 极致暗黑苹果风 UI
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --surface2: #2c2c2e;
+  --text: #f5f5f7;
+  --dim: #86868b;
+  --accent: #2997ff;
+  --accent2: #5ac8fa;
+  --green: #30d158;
+  --red: #ff453a;
+  --orange: #ff9f0a;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.15);
+  --radius: 20px;
+  --glow: 0 0 30px rgba(41,151,255,0.15);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#444;border-radius:4px}::-webkit-scrollbar-track{background:transparent}
+
+/* ── 动画 ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(41,151,255,0.2)}50%{box-shadow:0 0 40px rgba(41,151,255,0.4)}}
+.fu{animation:fadeUp .6s cubic-bezier(0.16,1,0.3,1) both}
+.fu1{animation-delay:.05s}.fu2{animation-delay:.1s}.fu3{animation-delay:.15s}.fu4{animation-delay:.2s}.fu5{animation-delay:.25s}
+
+/* ── 布局 ── */
+.wrap{max-width:520px;margin:0 auto;padding:2rem 1.25rem 5rem}
+.gap>*+*{margin-top:1rem}
+
+/* ── 头部 ── */
+.hdr{text-align:center;margin-bottom:2.5rem;position:relative}
+.hdr::after{content:'';position:absolute;bottom:-1rem;left:50%;transform:translateX(-50%);width:40px;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px}
+.hdr-icon{font-size:3.5rem;margin-bottom:.5rem;filter:drop-shadow(0 4px 12px rgba(41,151,255,0.3))}
+.hdr h1{font-size:1.8rem;font-weight:900;letter-spacing:-.03em;background:linear-gradient(135deg,#f5f5f7 0%,#86868b 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hdr p{color:var(--dim);font-size:.85rem;margin-top:.4rem;letter-spacing:.02em}
+
+/* ── 标签 / 输入 ── */
+.lbl{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--dim);font-weight:600;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em}
+.lbl-icon{font-size:.9rem}
+.ta{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1rem 1.2rem;color:var(--text);font-size:.95rem;line-height:1.7;resize:none;outline:none;transition:all .3s;font-family:inherit}
+.ta:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(41,151,255,.15)}
+.ta::placeholder{color:rgba(134,134,139,0.6)}
+.id-inp{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.75rem 1rem;color:var(--text);font-size:.9rem;outline:none;font-family:inherit;transition:all .3s}
+.id-inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(41,151,255,.15)}
+
+/* ── 风格选择 ── */
+.style-section{margin-top:.5rem}
+.style-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
+.style-chip{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:all .25s;user-select:none}
+.style-chip:hover{border-color:var(--border2);background:var(--surface2)}
+.style-chip.act{border-color:var(--accent);background:rgba(41,151,255,.08);box-shadow:var(--glow)}
+.style-chip .emoji{font-size:1.4rem}
+.style-chip .name{font-size:.7rem;color:var(--dim);font-weight:500;white-space:nowrap}
+.style-chip.act .name{color:var(--accent)}
+
+/* ── 主题配色 ── */
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px}
+.theme-chip{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px 8px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:all .25s}
+.theme-chip:hover{border-color:var(--border2)}
+.theme-chip.act{border-color:var(--accent);background:rgba(41,151,255,.08)}
+.theme-dots{display:flex;gap:3px}.theme-dot{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.1)}
+.theme-chip .tn{font-size:.65rem;color:var(--dim);font-weight:500;white-space:nowrap}
+.theme-chip.act .tn{color:var(--accent)}
+
+/* ── 高级设置 ── */
+.adv-tog{display:flex;align-items:center;gap:.4rem;background:none;border:none;color:var(--accent);font-size:.82rem;font-weight:600;cursor:pointer;padding:.6rem 0;transition:color .2s}
+.adv-tog:hover{color:var(--accent2)}
+.adv-panel{max-height:0;overflow:hidden;transition:max-height .5s cubic-bezier(0.16,1,0.3,1)}
+.adv-panel.open{max-height:800px}
+
+/* ── API 设置 ── */
+.api-section{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1rem 1.2rem;margin-top:.5rem}
+.api-row{display:flex;gap:8px;margin-bottom:8px}
+.api-row .id-inp{flex:1}
+.provider-sel{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.6rem .8rem;color:var(--text);font-size:.85rem;outline:none;cursor:pointer;min-width:100px}
+
+/* ── 生成按钮 ── */
+.gen{width:100%;padding:1rem;border-radius:980px;border:none;font-size:1rem;font-weight:700;cursor:pointer;transition:all .3s;background:linear-gradient(135deg,#0071e3 0%,#2997ff 100%);color:#fff;margin-top:1.2rem;letter-spacing:.02em;position:relative;overflow:hidden}
+.gen::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.1) 0%,transparent 50%);opacity:0;transition:opacity .3s}
+.gen:hover:not(:disabled)::before{opacity:1}
+.gen:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 30px rgba(0,113,227,.35)}
+.gen:active:not(:disabled){transform:translateY(0);box-shadow:none}
+.gen:disabled{opacity:.35;cursor:not-allowed}
+
+/* ── Loading ── */
+.ld{display:flex;flex-direction:column;align-items:center;padding:6rem 0;animation:fadeIn .4s}
+.spinner{width:40px;height:40px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin .8s linear infinite;margin-bottom:1.5rem}
+.ld p{color:var(--text);font-weight:600;font-size:1rem}
+.ld .sub{color:var(--dim);font-size:.8rem;margin-top:.5rem;animation:pulse 2s ease-in-out infinite}
+
+/* ── Error ── */
+.err{margin-top:1rem;padding:1rem 1.2rem;border-radius:14px;background:rgba(255,69,58,0.08);border:1px solid rgba(255,69,58,0.2);color:#ff6961;font-size:.85rem;line-height:1.5}
+
+/* ── 结果页 ── */
+.result-wrap{padding-top:1rem}
+.slide-img{display:block;width:100%;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.6);transition:transform .3s}
+.toolbar{display:flex;justify-content:space-between;align-items:center;padding:1rem 0;gap:8px}
+.tbb{padding:.6rem 1.2rem;border-radius:980px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-weight:600;cursor:pointer;font-size:.85rem;transition:all .2s;font-family:inherit}
+.tbb:hover{background:var(--surface2);border-color:var(--border2)}
+.tbb.primary{background:linear-gradient(135deg,#0071e3,#2997ff);border:none;color:#fff}
+.tbb.primary:hover{box-shadow:0 4px 20px rgba(0,113,227,.3)}
+.tbb.green{background:var(--green);border:none;color:#fff}
+
+/* ── 缩略图 ── */
+.thumbs{display:flex;gap:8px;padding:.5rem 0 1rem;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.thumb{width:52px;height:69px;border-radius:10px;overflow:hidden;cursor:pointer;border:2px solid transparent;opacity:.35;transition:all .25s;flex-shrink:0}
+.thumb:hover{opacity:.6}
+.thumb.act{border-color:var(--accent);opacity:1;box-shadow:0 0 12px rgba(41,151,255,.3)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+
+/* ── 页码指示 ── */
+.page-indicator{text-align:center;color:var(--dim);font-size:.8rem;font-weight:600;padding:.5rem 0}
+
+/* ── 文案区 ── */
+.cap-sec{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.5rem;margin-top:1rem}
+.cap-title{font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:.8rem;display:flex;align-items:center;gap:.4rem}
+.cap-ta{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:14px;padding:1rem;color:var(--text);font-size:.88rem;line-height:1.7;min-height:140px;resize:vertical;outline:none;font-family:inherit;transition:border-color .3s}
+.cap-ta:focus{border-color:var(--accent)}
+.tags-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:.8rem}
+.tag-chip{padding:4px 10px;border-radius:980px;background:rgba(41,151,255,.1);color:var(--accent);font-size:.75rem;font-weight:500}
+.btn-row{display:flex;gap:8px;margin-top:1rem}
+.copy-btn{flex:1;padding:.75rem;border-radius:980px;border:none;font-weight:600;cursor:pointer;font-size:.88rem;transition:all .2s;font-family:inherit}
+.copy-btn.main{background:var(--green);color:#fff}
+.copy-btn.main:hover{background:#28b84c}
+.copy-btn.sub{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.copy-btn.sub:hover{background:rgba(255,255,255,.1)}
+
+/* ── 分隔线 ── */
+.divider{height:1px;background:var(--border);margin:1rem 0}
+
+/* ── 提示卡片 ── */
+.tip-card{background:rgba(41,151,255,.06);border:1px solid rgba(41,151,255,.15);border-radius:14px;padding:1rem 1.2rem;margin-top:.8rem}
+.tip-card p{font-size:.8rem;color:var(--dim);line-height:1.6}
+.tip-card strong{color:var(--accent)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef,useCallback}=React;
+
+/* ═══════════════════════════════════════════════════════════
+   🎨 12 种主题配色方案
+   ═══════════════════════════════════════════════════════════ */
+const PALETTES = {
+  // ── 自然系 ──
+  totoro: {
+    name:"龙猫森林", dots:["#4a8b5c","#8bba8c","#f5f0e0"],
+    banner:[74,139,92], bannerText:[255,255,255],
+    bg:[250,248,242], text:[42,48,37], title:[32,58,28],
+    accent:[74,139,92], dim:[122,138,112], bullet:[58,122,74],
+    numBg:[74,139,92], numText:[255,255,255],
+    deco:[170,210,170], footerBg:[74,139,92], footerText:[255,255,255],
+    coverAccent:[190,220,180], tagBg:[230,244,230], tagText:[50,100,60]
+  },
+  sakura: {
+    name:"樱花粉", dots:["#e8a0b4","#f5c6d0","#fff5f7"],
+    banner:[220,140,168], bannerText:[255,255,255],
+    bg:[255,245,247], text:[80,50,60], title:[140,50,80],
+    accent:[220,140,168], dim:[180,140,155], bullet:[200,100,130],
+    numBg:[220,140,168], numText:[255,255,255],
+    deco:[245,200,215], footerBg:[220,140,168], footerText:[255,255,255],
+    coverAccent:[245,190,210], tagBg:[255,230,238], tagText:[160,70,100]
+  },
+  ocean: {
+    name:"深海蓝", dots:["#1a5276","#2e86c1","#d6eaf8"],
+    banner:[30,80,120], bannerText:[255,255,255],
+    bg:[240,248,255], text:[30,50,70], title:[20,60,100],
+    accent:[46,134,193], dim:[120,150,170], bullet:[30,100,150],
+    numBg:[46,134,193], numText:[255,255,255],
+    deco:[150,200,230], footerBg:[30,80,120], footerText:[255,255,255],
+    coverAccent:[130,190,230], tagBg:[220,238,250], tagText:[30,80,130]
+  },
+  sunset: {
+    name:"日落橘", dots:["#e67e22","#f39c12","#fdf2e9"],
+    banner:[210,110,40], bannerText:[255,255,255],
+    bg:[253,245,235], text:[80,50,30], title:[160,80,20],
+    accent:[230,126,34], dim:[180,150,120], bullet:[210,110,40],
+    numBg:[230,126,34], numText:[255,255,255],
+    deco:[245,190,130], footerBg:[210,110,40], footerText:[255,255,255],
+    coverAccent:[250,200,140], tagBg:[253,235,215], tagText:[180,90,20]
+  },
+  // ── 文艺系 ──
+  kiki: {
+    name:"魔女宅急便", dots:["#2a4070","#c44a4a","#f8f6f2"],
+    banner:[42,64,112], bannerText:[255,255,255],
+    bg:[248,246,242], text:[42,40,64], title:[26,24,48],
+    accent:[196,74,74], dim:[106,106,138], bullet:[42,64,112],
+    numBg:[196,74,74], numText:[255,255,255],
+    deco:[138,138,186], footerBg:[42,64,112], footerText:[255,255,255],
+    coverAccent:[170,170,210], tagBg:[232,230,242], tagText:[60,60,100]
+  },
+  mocha: {
+    name:"摩卡咖啡", dots:["#5d4037","#8d6e63","#efebe9"],
+    banner:[93,64,55], bannerText:[255,255,255],
+    bg:[245,240,235], text:[60,45,35], title:[80,50,35],
+    accent:[141,110,99], dim:[160,140,125], bullet:[93,64,55],
+    numBg:[141,110,99], numText:[255,255,255],
+    deco:[200,180,165], footerBg:[93,64,55], footerText:[255,255,255],
+    coverAccent:[210,190,170], tagBg:[235,225,215], tagText:[100,70,50]
+  },
+  lavender: {
+    name:"薰衣草", dots:["#7e57c2","#b39ddb","#ede7f6"],
+    banner:[126,87,194], bannerText:[255,255,255],
+    bg:[245,240,252], text:[50,35,70], title:[90,50,140],
+    accent:[126,87,194], dim:[150,130,170], bullet:[100,70,160],
+    numBg:[126,87,194], numText:[255,255,255],
+    deco:[190,170,220], footerBg:[126,87,194], footerText:[255,255,255],
+    coverAccent:[200,180,230], tagBg:[235,225,248], tagText:[90,60,150]
+  },
+  // ── 高级系 ──
+  noir: {
+    name:"高级黑", dots:["#212121","#616161","#e0e0e0"],
+    banner:[33,33,33], bannerText:[255,255,255],
+    bg:[245,245,245], text:[33,33,33], title:[20,20,20],
+    accent:[97,97,97], dim:[150,150,150], bullet:[66,66,66],
+    numBg:[33,33,33], numText:[255,255,255],
+    deco:[200,200,200], footerBg:[33,33,33], footerText:[255,255,255],
+    coverAccent:[180,180,180], tagBg:[230,230,230], tagText:[60,60,60]
+  },
+  mint: {
+    name:"薄荷绿", dots:["#00897b","#4db6ac","#e0f2f1"],
+    banner:[0,137,123], bannerText:[255,255,255],
+    bg:[240,250,248], text:[30,60,55], title:[0,100,90],
+    accent:[0,137,123], dim:[120,160,150], bullet:[0,120,110],
+    numBg:[0,137,123], numText:[255,255,255],
+    deco:[150,215,205], footerBg:[0,137,123], footerText:[255,255,255],
+    coverAccent:[140,220,210], tagBg:[220,245,240], tagText:[0,100,90]
+  },
+  rose: {
+    name:"玫瑰金", dots:["#b76e79","#d4a0a7","#fce4ec"],
+    banner:[183,110,121], bannerText:[255,255,255],
+    bg:[252,240,243], text:[80,40,50], title:[150,70,85],
+    accent:[183,110,121], dim:[170,140,148], bullet:[160,90,100],
+    numBg:[183,110,121], numText:[255,255,255],
+    deco:[220,175,185], footerBg:[183,110,121], footerText:[255,255,255],
+    coverAccent:[230,185,195], tagBg:[248,225,232], tagText:[150,70,85]
+  },
+  tech: {
+    name:"科技蓝", dots:["#0d47a1","#1976d2","#e3f2fd"],
+    banner:[13,71,161], bannerText:[255,255,255],
+    bg:[240,248,255], text:[20,40,70], title:[13,71,161],
+    accent:[25,118,210], dim:[100,140,180], bullet:[13,71,161],
+    numBg:[25,118,210], numText:[255,255,255],
+    deco:[130,180,230], footerBg:[13,71,161], footerText:[255,255,255],
+    coverAccent:[130,180,240], tagBg:[220,238,255], tagText:[13,71,161]
+  },
+  warm: {
+    name:"暖阳黄", dots:["#f9a825","#fdd835","#fffde7"],
+    banner:[240,160,30], bannerText:[60,40,0],
+    bg:[255,253,235], text:[60,50,20], title:[180,120,0],
+    accent:[249,168,37], dim:[180,160,100], bullet:[200,150,30],
+    numBg:[249,168,37], numText:[60,40,0],
+    deco:[255,220,130], footerBg:[240,160,30], footerText:[60,40,0],
+    coverAccent:[255,230,150], tagBg:[255,245,200], tagText:[160,110,0]
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   📝 5 种内容风格
+   ═══════════════════════════════════════════════════════════ */
+const STYLES = {
+  tutorial:  { name:"干货教学", emoji:"📚", desc:"步骤清晰的教程类" },
+  emotional: { name:"情绪共鸣", emoji:"💭", desc:"引发共鸣的走心文" },
+  recommend: { name:"种草安利", emoji:"🛒", desc:"产品或体验推荐" },
+  lifestyle: { name:"生活分享", emoji:"🌿", desc:"日常生活记录" },
+  opinion:   { name:"观点输出", emoji:"🔥", desc:"犀利观点与思考" }
+};
+
+/* ═══════════════════════════════════════════════════════════
+   🧠 核心：多层级 Prompt 架构
+   ═══════════════════════════════════════════════════════════ */
+
+function buildSystemPrompt(style) {
+  const styleGuides = {
+    tutorial: `你的写作风格：干货教学型。
+- 语气：专业但亲切，像一个耐心的学姐在教你
+- 结构：步骤化、清单化，每一步都有具体操作
+- 特点：实用性极强，读者看完能立即行动
+- 开篇：用数据或痛点引入("90%的人都不知道...")
+- 每页内容要点3-5个，每个要点15-30字
+- 多用 ✅ ❌ 💡 📌 等实用型emoji`,
+
+    emotional: `你的写作风格：情绪共鸣型。
+- 语气：温暖真诚、娓娓道来，像在和闺蜜聊天
+- 结构：故事性强，有起承转合
+- 特点：触动人心，引发"这说的不就是我吗"的感觉
+- 开篇：用场景描述或金句引入
+- 每页内容像在讲一个小故事片段
+- 多用 🥺 ❤️ ✨ 🌙 💫 等情感型emoji`,
+
+    recommend: `你的写作风格：种草安利型。
+- 语气：热情真实、有说服力，像真实用户在分享
+- 结构：痛点引入→产品介绍→使用体验→效果对比
+- 特点：真实感强，有具体细节和使用场景
+- 开篇：用痛点或惊喜效果引入
+- 每页聚焦一个卖点或使用场景
+- 多用 🔥 ❗ 💯 👏 ⭐ 等推荐型emoji`,
+
+    lifestyle: `你的写作风格：生活分享型。
+- 语气：轻松自然、有烟火气，像在朋友圈分享
+- 结构：场景→发现→感受→推荐
+- 特点：有画面感，让人向往
+- 开篇：用一个生活场景切入
+- 内容融入个人感受和小tips
+- 多用 🌸 ☕ 🏠 🌈 🍃 等生活型emoji`,
+
+    opinion: `你的写作风格：观点输出型。
+- 语气：犀利有深度，有理有据
+- 结构：抛出观点→展开论证→给出建议
+- 特点：让人有"醍醐灌顶"的感觉
+- 开篇：用反常识观点或犀利问题引入
+- 每页一个核心论点，配合论据
+- 多用 ⚡ 🎯 💡 🧠 📢 等思考型emoji`
+  };
+
+  return `你是一个小红书百万粉丝的顶级博主，精通爆款内容创作。你深谙小红书平台的流量密码和用户心理。
+
+## 你的核心能力：
+1. **标题大师**：精通"二极管标题法"
+   - 正面刺激公式：产品/方法 + 只需X（短期）+ 便可获得（逆天效果）
+   - 负面刺激公式：你不X + 绝对会后悔（天大损失）+ （紧迫感）
+   - 善用数字、疑问、惊叹、对比来制造吸引力
+
+2. **爆款关键词库**（标题和内容中自然融入1-3个）：
+   好用到哭、大数据、教科书般、小白必看、宝藏、绝绝子、神器、都给我冲、划重点、YYDS、秘方、压箱底、建议收藏、停止摆烂、上天在提醒你、手把手、揭秘、沉浸式、吹爆、好用哭了、搞钱必看、打工人、吐血整理、家人们、隐藏、高级感、治愈、破防了、万万没想到、爆款、被夸爆、手残党必备、正确姿势、天花板、闭眼入
+
+3. **内容创作法则**：
+   - 每段2-4行，绝不写大段文字
+   - emoji是灵魂，但不能过度（每段1-3个）
+   - 口语化表达，拉近距离（"姐妹们"、"家人们"、"说真的"）
+   - 制造信息差和获得感
+   - 结尾一定要引导互动
+
+${styleGuides[style] || styleGuides.tutorial}
+
+## 绝对禁止：
+- 不要生硬堆砌关键词
+- 不要使用"首先其次最后"这种八股文结构
+- 不要写得像广告文案或新闻稿
+- 不要使用markdown格式符号(#、**、- 等)
+- 每个bullet point不超过35字`;
+}
+
+function buildUserPrompt(idea, style) {
+  const styleLabel = STYLES[style]?.name || "干货教学";
+
+  return `请根据我的想法，生成一套完整的小红书图文卡片内容。
+
+## 我的想法：
+${idea}
+
+## 创作风格：${styleLabel}
+
+## 输出要求（严格遵守JSON格式）：
+
+生成 6-8 页卡片内容，包含：
+1. **第1页：封面** - 最吸引眼球的标题
+2. **第2-7页：内容页** - 每页一个主题，含标题和3-5个要点
+3. **最后1页：结尾页** - 总结金句 + 互动引导
+
+请直接输出以下JSON（不要有任何其他文字）：
+
+{
+  "seriesTitle": "卡片顶部的系列栏标题，6-10字",
+  "pages": [
+    {
+      "type": "cover",
+      "tag": "一个引导标签，如'收藏级干货'或'真心推荐'，带emoji，5-8字",
+      "title": "封面大标题，10-20字，要有冲击力和好奇心",
+      "subtitle": "封面副标题，补充说明，15-25字"
+    },
+    {
+      "type": "content",
+      "title": "本页小标题，5-12字，带emoji",
+      "bullets": [
+        "要点1，具体、有用、口语化，15-30字",
+        "要点2",
+        "要点3",
+        "要点4"
+      ]
+    },
+    ...更多content页...
+    {
+      "type": "ending",
+      "title": "结尾金句，有力量感，10-20字",
+      "subtitle": "互动引导语，如'觉得有用记得收藏❤️'"
+    }
+  ],
+  "caption": "完整的小红书文案正文，200-400字，分段清晰，带emoji，结尾有互动引导",
+  "hashtags": ["标签1", "标签2", "标签3", "标签4", "标签5", "标签6"]
+}
+
+## 示例参考（仅供理解格式，内容请完全原创）：
+{
+  "seriesTitle": "效率提升指南",
+  "pages": [
+    {"type":"cover","tag":"🔥 打工人必看","title":"5个习惯让你效率翻倍","subtitle":"从拖延症晚期到自律达人的蜕变之路"},
+    {"type":"content","title":"⏰ 早起黄金1小时","bullets":["5:30闹钟响了别犹豫 直接起来喝杯温水","前30分钟做最重要的事 大脑最清醒","不刷手机！不刷手机！不刷手机！","坚持21天你会发现整个人状态都不一样了"]},
+    {"type":"content","title":"📋 任务清单的正确打开方式","bullets":["每天只写3件最重要的事 多了等于没写","用番茄钟工作法 25分钟专注+5分钟休息","完成一项就划掉 成就感拉满","周日晚上提前规划下周 赢在起跑线"]},
+    {"type":"content","title":"🧹 断舍离你的时间","bullets":["统计一周你花在短视频上的时间 会吓到你","把手机app按使用时长排序 该删的删","学会说不 别人的紧急不是你的紧急","碎片时间用来听播客或背单词"]},
+    {"type":"content","title":"💪 运动是最好的充电","bullets":["不需要去健身房 跟着刘畊宏跳20分钟就够","运动后大脑分泌多巴胺 下午不犯困","建议安排在午休后 效果最好","找个搭子一起 互相监督不容易放弃"]},
+    {"type":"content","title":"📖 睡前复盘10分钟","bullets":["今天完成了什么？写3个小成就","明天最重要的1件事是什么？提前想好","记录一个今天学到的新东西","感恩日记：写1件让你开心的小事"]},
+    {"type":"ending","title":"自律不是束缚 而是自由 ✨","subtitle":"觉得有帮助的话 记得收藏+关注 我们一起变好❤️"}
+  ],
+  "caption":"家人们！我从一个重度拖延症患者变成现在每天精力充沛的状态 真的只用了这5个方法 🥺\\n\\n说真的 以前的我每天浑浑噩噩 工作效率低到离谱 晚上熬夜刷手机 早上起不来 恶性循环...\\n\\n直到我开始一个一个养成这些习惯 整个人都不一样了！\\n\\n最推荐大家先从【早起】开始 不用5点 6点就够 给自己一个安静的早晨 你会爱上这种掌控感 💪\\n\\n这些方法我坚持了3个月 工作效率真的翻倍 而且整个人精神状态好了太多\\n\\n你们有什么提升效率的好方法吗？评论区一起交流呀 👇",
+  "hashtags":["效率提升","自律生活","打工人日常","好习惯养成","时间管理","成长干货"]
+}
+
+请现在根据我的想法创作，直接输出JSON：`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   🖼️ Canvas 渲染引擎
+   ═══════════════════════════════════════════════════════════ */
+const W=1080, H=1440, MX=80, MY=90, CW=W-MX*2;
+const FN="'Noto Sans SC',sans-serif";
+
+function mkCanvas(){
+  const c=document.createElement("canvas");
+  c.width=W; c.height=H;
+  return c;
+}
+
+function drawRR(ctx,x,y,w,h,r,color){
+  ctx.fillStyle=typeof color==="string"?color:`rgb(${color})`;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.fill();
+}
+
+function strokeRR(ctx,x,y,w,h,r,color,lw=2){
+  ctx.strokeStyle=typeof color==="string"?color:`rgba(${color},0.3)`;
+  ctx.lineWidth=lw;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.stroke();
+}
+
+function wrapText(ctx,text,font,maxW){
+  if(!text)return[];
+  ctx.font=font;
+  const lines=[];
+  for(const raw of text.split("\\n")){
+    if(!raw.trim()){lines.push("");continue;}
+    let buf="";
+    for(const ch of Array.from(raw)){
+      const t=buf+ch;
+      if(ctx.measureText(t).width>maxW && buf){lines.push(buf);buf=ch;}
+      else buf=t;
+    }
+    if(buf)lines.push(buf);
+  }
+  return lines;
+}
+
+function drawDecoCircles(ctx,P){
+  ctx.globalAlpha=0.06;
+  ctx.fillStyle=`rgb(${P.accent})`;
+  ctx.beginPath();ctx.arc(W-60,120,180,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(100,H-100,120,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;
+}
+
+function drawFooter(ctx,idx,total,P,author){
+  const fy=H-65;
+  ctx.font=`500 24px ${FN}`;
+  ctx.fillStyle=`rgb(${P.dim})`;
+  ctx.textAlign="right";
+  ctx.textBaseline="middle";
+  ctx.fillText(`${idx+1} / ${total}`,W-MX,fy);
+  if(author){
+    ctx.textAlign="left";
+    ctx.fillStyle=`rgb(${P.dim})`;
+    ctx.font=`400 22px ${FN}`;
+    ctx.fillText(`@${author}`,MX,fy);
+  }
+  ctx.textAlign="left";
+  ctx.textBaseline="top";
+}
+
+function renderCover(ctx,page,total,P,author){
+  ctx.fillStyle=`rgb(${P.bg})`;ctx.fillRect(0,0,W,H);
+  drawDecoCircles(ctx,P);
+  ctx.textAlign="left";ctx.textBaseline="top";
+
+  drawRR(ctx,MX,MY+20,60,5,3,P.accent);
+
+  let y=MY+80;
+
+  if(page.tag){
+    const tagFont=`600 28px ${FN}`;
+    ctx.font=tagFont;
+    const tw=ctx.measureText(page.tag).width;
+    drawRR(ctx,MX,y-4,tw+32,48,24,P.tagBg||[230,244,230]);
+    ctx.fillStyle=`rgb(${P.tagText||P.accent})`;
+    ctx.fillText(page.tag,MX+16,y+4);
+    y+=72;
+  }
+
+  ctx.font=`900 76px ${FN}`;
+  const titleLines=wrapText(ctx,page.title,ctx.font,CW);
+  ctx.fillStyle=`rgb(${P.title})`;
+  titleLines.forEach(l=>{ctx.fillText(l,MX,y);y+=104;});
+  y+=30;
+
+  drawRR(ctx,MX,y,120,4,2,P.accent);
+  y+=40;
+
+  if(page.subtitle){
+    ctx.font=`300 34px ${FN}`;
+    const subLines=wrapText(ctx,page.subtitle,ctx.font,CW);
+    ctx.fillStyle=`rgb(${P.dim})`;
+    subLines.forEach(l=>{ctx.fillText(l,MX,y);y+=52;});
+  }
+
+  drawFooter(ctx,0,total,P,author);
+}
+
+function renderContent(ctx,page,idx,total,P,author,seriesTitle){
+  ctx.fillStyle=`rgb(${P.bg})`;ctx.fillRect(0,0,W,H);
+  drawDecoCircles(ctx,P);
+  ctx.textAlign="left";ctx.textBaseline="top";
+
+  const bh=68;
+  drawRR(ctx,MX-10,MY,CW+20,bh,16,P.banner);
+  ctx.font=`700 28px ${FN}`;
+  ctx.fillStyle=`rgb(${P.bannerText})`;
+  ctx.textAlign="center";
+  ctx.fillText(seriesTitle||"",W/2,MY+20);
+  ctx.textAlign="left";
+
+  let y=MY+bh+40;
+
+  const cr=30,cx=MX+cr,cy=y+cr;
+  drawRR(ctx,cx-cr,cy-cr,cr*2,cr*2,cr,P.numBg);
+  ctx.font=`800 26px ${FN}`;
+  ctx.fillStyle=`rgb(${P.numText})`;
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText(String(idx),cx,cy);
+  ctx.textAlign="left";ctx.textBaseline="top";
+
+  ctx.font=`800 40px ${FN}`;
+  ctx.fillStyle=`rgb(${P.title})`;
+  const titleStartX=cx+cr+20;
+  const titleMaxW=W-MX-titleStartX;
+  const titleLines=wrapText(ctx,page.title||"",ctx.font,titleMaxW);
+  titleLines.forEach((l,i)=>{ctx.fillText(l,titleStartX,cy-20+i*52);});
+
+  y+=Math.max(80, titleLines.length*52+20);
+
+  ctx.fillStyle=`rgba(${P.accent},0.15)`;
+  ctx.fillRect(MX,y,CW,2);
+  y+=30;
+
+  const bullets=page.bullets||[];
+  const maxBulletH=H-y-100;
+
+  let bfs=32, blh=50, bgap=18;
+  const testFit=()=>{
+    let th=0;
+    bullets.forEach(item=>{
+      const lines=wrapText(ctx,item,`400 ${bfs}px ${FN}`,CW-50);
+      th+=lines.length*blh+bgap;
+    });
+    return th;
+  };
+  ctx.font=`400 ${bfs}px ${FN}`;
+  while(testFit()>maxBulletH && bfs>22){bfs-=2;blh=bfs+16;bgap=12;}
+
+  bullets.forEach((item,bi)=>{
+    ctx.fillStyle=`rgb(${P.bullet})`;
+    ctx.beginPath();ctx.arc(MX+14,y+blh/2-2,7,0,Math.PI*2);ctx.fill();
+
+    const bLines=wrapText(ctx,item,`400 ${bfs}px ${FN}`,CW-50);
+    ctx.font=`400 ${bfs}px ${FN}`;
+    ctx.fillStyle=`rgb(${P.text})`;
+    bLines.forEach(l=>{ctx.fillText(l,MX+38,y);y+=blh;});
+    y+=bgap;
+  });
+
+  drawFooter(ctx,idx,total,P,author);
+}
+
+function renderEnding(ctx,page,idx,total,P,author){
+  ctx.fillStyle=`rgb(${P.bg})`;ctx.fillRect(0,0,W,H);
+  drawDecoCircles(ctx,P);
+
+  ctx.fillStyle=`rgba(${P.accent},0.08)`;
+  ctx.beginPath();ctx.arc(W/2,H*0.38,200,0,Math.PI*2);ctx.fill();
+
+  ctx.textBaseline="top";
+  let y=H*0.3;
+
+  drawRR(ctx,W/2-30,y-30,60,4,2,P.accent);
+  y+=10;
+
+  ctx.font=`800 56px ${FN}`;
+  ctx.fillStyle=`rgb(${P.title})`;
+  ctx.textAlign="center";
+  const tLines=wrapText(ctx,page.title||"",ctx.font,CW-40);
+  tLines.forEach(l=>{ctx.fillText(l,W/2,y);y+=78;});
+  y+=40;
+
+  if(page.subtitle){
+    ctx.font=`400 30px ${FN}`;
+    ctx.fillStyle=`rgb(${P.dim})`;
+    const sLines=wrapText(ctx,page.subtitle,ctx.font,CW-60);
+    sLines.forEach(l=>{ctx.fillText(l,W/2,y);y+=48;});
+  }
+
+  drawRR(ctx,W/2-30,y+30,60,4,2,P.accent);
+
+  ctx.textAlign="left";
+  drawFooter(ctx,idx,total,P,author);
+}
+
+function renderPage(page,idx,total,P,author,seriesTitle){
+  const c=mkCanvas(),ctx=c.getContext("2d");
+  const pt=page.type||"content";
+  if(pt==="cover")renderCover(ctx,page,total,P,author);
+  else if(pt==="ending")renderEnding(ctx,page,idx,total,P,author);
+  else renderContent(ctx,page,idx,total,P,author,seriesTitle);
+  return c;
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   🔌 API 调用层
+   ═══════════════════════════════════════════════════════════ */
+async function callAPI(idea, style, provider, apiKey, model){
+  const aiMode = localStorage.getItem('ai_mode');
+  
+  let finalEndpoint = '';
+  let finalAuthKey = '';
+  let finalModel = '';
+
+  if (aiMode === 'official' || aiMode === 'unofficial') {
+      if (aiMode === 'official') {
+          const globalProvider = localStorage.getItem('api_provider');
+          finalAuthKey = localStorage.getItem('api_key');
+          if (!finalAuthKey) throw new Error("缺少全局 API Key，请返回平台主页【生产力引擎】配置！");
+          
+          if (globalProvider === 'deepseek') { 
+              finalEndpoint = 'https://api.deepseek.com/chat/completions'; 
+              finalModel = 'deepseek-chat'; 
+          } else if (globalProvider === 'minimax') { 
+              finalEndpoint = 'https://api.minimaxi.com/v1/chat/completions'; 
+              finalModel = 'MiniMax-M2.7'; 
+          }
+      } else {
+          finalAuthKey = localStorage.getItem('gpt_access_token');
+          if (!finalAuthKey) throw new Error("缺少 Web Token，请返回平台主页配置！");
+          finalEndpoint = 'http://localhost:8080/v1/chat/completions'; 
+          finalModel = 'gpt-4o';
+      }
+  } else {
+      if(!apiKey) throw new Error("请先在「高级设置 → API配置」中填入你的 API Key");
+      
+      const endpoints={
+        openai:{url:"https://api.openai.com/v1/chat/completions",model:model||"gpt-4o-mini"},
+        deepseek:{url:"https://api.deepseek.com/chat/completions",model:model||"deepseek-chat"},
+        minimax:{url:"https://api.minimax.chat/v1/text/chatcompletion_v2",model:model||"abab6.5s-chat"},
+        zhipu:{url:"https://open.bigmodel.cn/api/paas/v4/chat/completions",model:model||"glm-4-flash"},
+        siliconflow:{url:"https://api.siliconflow.cn/v1/chat/completions",model:model||"Qwen/Qwen2.5-7B-Instruct"},
+        custom:{url:localStorage.getItem('custom_endpoint')||"",model:model||"gpt-4o-mini"}
+      };
+      
+      const cfg = endpoints[provider] || endpoints.openai;
+      if(!cfg.url) throw new Error("请在自定义模式下填入 API 端点地址");
+      
+      finalEndpoint = cfg.url;
+      finalModel = cfg.model;
+      finalAuthKey = apiKey;
+  }
+
+  const sysPrompt = buildSystemPrompt(style);
+  const userPrompt = buildUserPrompt(idea, style);
+
+  const r = await fetch(finalEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${finalAuthKey}` },
+    body: JSON.stringify({
+      model: finalModel,
+      messages: [
+        {role: "system", content: sysPrompt},
+        {role: "user", content: userPrompt}
+      ],
+      temperature: 0.82,
+      max_tokens: 4000
+    })
+  });
+
+  if(!r.ok){
+    const e = await r.json().catch(()=>({}));
+    throw new Error(e.error?.message || `API 请求失败 (${r.status})，请检查 Key 或网络状态`);
+  }
+
+  const d = await r.json();
+  const t = d.choices?.[0]?.message?.content || "";
+
+  try{
+    const match = t.match(/\{[\s\S]*\}/);
+    if(!match) throw new Error("未找到JSON");
+    return JSON.parse(match[0]);
+  }catch(err){
+    console.error("AI原始输出：", t);
+    throw new Error("AI 输出格式异常，请重试一次（已打印原始输出到控制台）");
+  }
+}
+
+async function downloadZip(cvs){
+  const zip=new JSZip();
+  for(let i=0;i<cvs.length;i++){
+    const blob=await new Promise(r=>cvs[i].toBlob(r,"image/jpeg",0.93));
+    zip.file(`小红书_${String(i+1).padStart(2,'0')}.jpg`,blob);
+  }
+  const c=await zip.generateAsync({type:"blob"});
+  const u=URL.createObjectURL(c);
+  const a=document.createElement("a");
+  a.href=u;a.download=`小红书卡片_${Date.now()}.zip`;a.click();
+  URL.revokeObjectURL(u);
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   ⚛️ React 主应用
+   ═══════════════════════════════════════════════════════════ */
+function App(){
+  const[idea,setIdea]=useState("");
+  const[style,setStyle]=useState("tutorial");
+  const[palette,setPalette]=useState("totoro");
+  const[author,setAuthor]=useState(()=>localStorage.getItem("xhs_author")||"");
+  const[provider,setProvider]=useState(()=>localStorage.getItem("xhs_provider")||"deepseek");
+  const[apiKey,setApiKey]=useState(()=>localStorage.getItem("xhs_apikey")||"");
+  const[customModel,setCustomModel]=useState(()=>localStorage.getItem("xhs_model")||"");
+  const[customEndpoint,setCustomEndpoint]=useState(()=>localStorage.getItem("custom_endpoint")||"");
+  const[advOpen,setAdvOpen]=useState(false);
+  const[loading,setLoading]=useState(false);
+  const[loadingMsg,setLoadingMsg]=useState("正在构思创意...");
+  const[error,setError]=useState(null);
+  const[result,setResult]=useState(null);
+  const[cvs,setCvs]=useState([]);
+  const[imgs,setImgs]=useState([]);
+  const[cur,setCur]=useState(0);
+  const[caption,setCaption]=useState("");
+  const[copied,setCopied]=useState(false);
+
+  useEffect(()=>{
+    localStorage.setItem("xhs_provider",provider);
+    localStorage.setItem("xhs_apikey",apiKey);
+    if(customModel)localStorage.setItem("xhs_model",customModel);
+    if(customEndpoint)localStorage.setItem("custom_endpoint",customEndpoint);
+  },[provider,apiKey,customModel,customEndpoint]);
+
+  const generate=async()=>{
+    if(!idea.trim())return;
+    setLoading(true);setError(null);setResult(null);setCvs([]);setImgs([]);
+
+    const msgs=["正在分析你的想法...","正在构思爆款标题...","正在撰写走心文案...","正在排版精美卡片..."];
+    let mi=0;
+    const timer=setInterval(()=>{mi=(mi+1)%msgs.length;setLoadingMsg(msgs[mi])},2500);
+
+    try{
+      const d=await callAPI(idea,style,provider,apiKey,customModel);
+      setResult(d);
+      setCaption(d.caption||"");
+
+      const P=PALETTES[palette];
+      const st=d.seriesTitle||"";
+      const pages=d.pages||[];
+      const total=pages.length;
+
+      let contentIdx=0;
+      const cs=pages.map((p,i)=>{
+        if(p.type==="content")contentIdx++;
+        return renderPage(p, p.type==="content"?contentIdx:i, total, P, author, st);
+      });
+
+      setCvs(cs);
+      setImgs(cs.map(c=>c.toDataURL("image/jpeg",.92)));
+      setCur(0);
+    }catch(e){
+      setError(e.message);
+    }
+    clearInterval(timer);
+    setLoading(false);
+  };
+
+  const rerender=useCallback((newPalette)=>{
+    if(!result)return;
+    const P=PALETTES[newPalette];
+    const st=result.seriesTitle||"";
+    const pages=result.pages||[];
+    const total=pages.length;
+    let contentIdx=0;
+    const cs=pages.map((p,i)=>{
+      if(p.type==="content")contentIdx++;
+      return renderPage(p,p.type==="content"?contentIdx:i,total,P,author,st);
+    });
+    setCvs(cs);
+    setImgs(cs.map(c=>c.toDataURL("image/jpeg",.92)));
+  },[result,author]);
+
+  // ── 输入界面 ──
+  if(!result&&!loading)return(
+    <div className="wrap">
+      <div className="hdr fu">
+        <div className="hdr-icon">✨</div>
+        <h1>小红书文案生成器</h1>
+        <p>一句话生成顶级文案 + 精美卡片</p>
+      </div>
+
+      <div className="gap">
+        {/* 创作想法 */}
+        <div className="fu fu1">
+          <label className="lbl"><span className="lbl-icon">💡</span>创作想法</label>
+          <textarea className="ta" rows="4" value={idea} onChange={e=>setIdea(e.target.value)}
+            placeholder={"随便写一句话就行，比如：\n• 5个让皮肤变好的习惯\n• 分享我在上海发现的宝藏咖啡店\n• 月薪5000如何存到第一个10万"}/>
+        </div>
+
+        {/* 风格选择 */}
+        <div className="fu fu2">
+          <label className="lbl"><span className="lbl-icon">🎭</span>创作风格</label>
+          <div className="style-grid">
+            {Object.entries(STYLES).map(([k,v])=>(
+              <div key={k} className={`style-chip ${style===k?"act":""}`} onClick={()=>setStyle(k)}>
+                <span className="emoji">{v.emoji}</span>
+                <span className="name">{v.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 主题配色 */}
+        <div className="fu fu3">
+          <label className="lbl"><span className="lbl-icon">🎨</span>卡片配色</label>
+          <div className="theme-grid">
+            {Object.entries(PALETTES).map(([k,v])=>(
+              <div key={k} className={`theme-chip ${palette===k?"act":""}`} onClick={()=>setPalette(k)}>
+                <div className="theme-dots">
+                  {v.dots.map((c,i)=><div key={i} className="theme-dot" style={{background:c}}/>)}
+                </div>
+                <span className="tn">{v.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 高级设置 */}
+        <div className="fu fu4">
+          <button className="adv-tog" onClick={()=>setAdvOpen(!advOpen)}>
+            {advOpen?"▼":"▶"} 高级设置
+          </button>
+          <div className={`adv-panel ${advOpen?"open":""}`}>
+            <div style={{paddingTop:".5rem"}} className="gap">
+              {/* 署名 */}
+              <div>
+                <label className="lbl"><span className="lbl-icon">👤</span>署名 ID（可选）</label>
+                <input className="id-inp" value={author} placeholder="你的小红书ID"
+                  onChange={e=>{setAuthor(e.target.value);localStorage.setItem("xhs_author",e.target.value)}}/>
+              </div>
+
+              {/* API 配置 */}
+              <div className="api-section">
+                <label className="lbl"><span className="lbl-icon">🔑</span>AI 引擎配置</label>
+                <div className="api-row">
+                  <select className="provider-sel" value={provider} onChange={e=>setProvider(e.target.value)}>
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="zhipu">智谱GLM</option>
+                    <option value="siliconflow">硅基流动</option>
+                    <option value="minimax">MiniMax</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <input className="id-inp" type="password" value={apiKey} placeholder="输入 API Key"
+                    onChange={e=>setApiKey(e.target.value)}/>
+                </div>
+                {provider==="custom"&&(
+                  <div className="api-row">
+                    <input className="id-inp" value={customEndpoint} placeholder="API 端点 URL"
+                      onChange={e=>setCustomEndpoint(e.target.value)}/>
+                  </div>
+                )}
+                <div className="api-row">
+                  <input className="id-inp" value={customModel} placeholder="模型名称（留空用默认）"
+                    onChange={e=>setCustomModel(e.target.value)}/>
+                </div>
+                <div className="tip-card">
+                  <p>💡 推荐使用 <strong>DeepSeek</strong>，性价比最高。注册即送500万tokens免费额度。<br/>
+                  其他选择：OpenAI (gpt-4o-mini)、智谱GLM (glm-4-flash 免费)、硅基流动 (多模型)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 生成按钮 */}
+        <div className="fu fu5">
+          <button className="gen" onClick={generate} disabled={!idea.trim()}>
+            🚀 一键生成爆款文案
+          </button>
+        </div>
+      </div>
+
+      {error&&<div className="err">❌ {error}</div>}
+    </div>
+  );
+
+  // ── Loading 界面 ──
+  if(loading)return(
+    <div className="wrap">
+      <div className="ld">
+        <div className="spinner"/>
+        <p>AI 创作中</p>
+        <p className="sub">{loadingMsg}</p>
+      </div>
+    </div>
+  );
+
+  // ── 结果界面 ──
+  return(
+    <div className="wrap result-wrap">
+      <img className="slide-img" src={imgs[cur]} alt={`第${cur+1}页`}/>
+
+      <div className="page-indicator">{cur+1} / {imgs.length}</div>
+
+      <div className="toolbar">
+        <button className="tbb" onClick={()=>{setResult(null);setError(null)}}>← 重新创作</button>
+        <button className="tbb primary" onClick={()=>downloadZip(cvs)}>📦 下载全部图片</button>
+      </div>
+
+      <div className="thumbs">
+        {imgs.map((s,j)=>(
+          <div key={j} className={`thumb ${j===cur?"act":""}`} onClick={()=>setCur(j)}>
+            <img src={s} alt={`第${j+1}页`}/>
+          </div>
+        ))}
+      </div>
+
+      <div style={{marginBottom:"1rem"}}>
+        <label className="lbl"><span className="lbl-icon">🎨</span>切换配色（实时预览）</label>
+        <div className="theme-grid">
+          {Object.entries(PALETTES).map(([k,v])=>(
+            <div key={k} className={`theme-chip ${palette===k?"act":""}`} onClick={()=>{setPalette(k);rerender(k)}}>
+              <div className="theme-dots">
+                {v.dots.map((c,i)=><div key={i} className="theme-dot" style={{background:c}}/>)}
+              </div>
+              <span className="tn">{v.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="cap-sec">
+        <div className="cap-title">📝 配套文案</div>
+        <textarea className="cap-ta" value={caption} onChange={e=>setCaption(e.target.value)}/>
+
+        {result?.hashtags?.length>0&&(
+          <div className="tags-row">
+            {result.hashtags.map((t,i)=><span key={i} className="tag-chip">#{t}</span>)}
+          </div>
+        )}
+
+        <div className="btn-row">
+          <button className="copy-btn main" onClick={()=>{
+            const fullText=caption+"\n\n"+(result?.hashtags?.map(t=>"#"+t).join(" ")||"");
+            navigator.clipboard.writeText(fullText);
+            setCopied(true);setTimeout(()=>setCopied(false),2000);
+          }}>{copied?"✅ 已复制到剪贴板":"📋 一键复制文案+标签"}</button>
+        </div>
+      </div>
+
+      {error&&<div className="err">❌ {error}</div>}
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>,document.getElementById("root"));
+</script>
+</body>
+</html>
