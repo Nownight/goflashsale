@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PaperBanana · 学术科研绘图</title>
+<link rel="stylesheet" href="_shared.css">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root {
+  --chart-bg: #ffffff;
+  --accent-pb: #f5a623;
+}
+.page { max-width: 1000px; }
+.tab-bar {
+  display: flex; gap: 4px; padding: 4px;
+  background: #131315; border: 1px solid var(--border);
+  border-radius: 14px; margin-bottom: 32px;
+}
+.tab-bar button {
+  flex: 1; padding: 12px 20px; font-size: 14px; font-weight: 500;
+  background: transparent; color: var(--text-mute); border: none;
+  border-radius: 10px; transition: all 0.2s; cursor: pointer;
+}
+.tab-bar button.on { background: var(--panel-2); color: var(--text); }
+.chart-container {
+  width: 100%; height: 480px;
+  background: #ffffff; border-radius: 16px;
+  border: 1px solid var(--border); overflow: hidden;
+  margin: 20px 0;
+}
+.data-preview { max-height: 200px; overflow: auto; }
+.data-preview table { width: 100%; font-size: 12px; border-collapse: collapse; }
+.data-preview th { background: #131315; color: var(--text-mute); padding: 8px 12px; text-align: left; font-weight: 500; position: sticky; top: 0; }
+.data-preview td { padding: 6px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+.status-line {
+  display: flex; align-items: center; gap: 10px; padding: 14px 18px;
+  border-radius: 14px; font-size: 13px; margin: 12px 0;
+  background: #131315; border: 1px solid var(--border);
+}
+.status-line .dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-line .dot.running { background: var(--blue-accent); animation: pulse 1.2s infinite; }
+.status-line .dot.ok { background: var(--green); }
+.status-line .dot.err { background: var(--red); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+.export-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+code-block {
+  display: block; background: #131315; border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px; margin-top: 12px;
+  font-family: var(--mono); font-size: 12px; line-height: 1.6;
+  white-space: pre-wrap; word-break: break-all; max-height: 360px; overflow: auto;
+  color: var(--text-mute);
+}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<script src="_nav.js" data-active="workspace"></script>
+
+<main class="page">
+  <header class="page-hero fade-in">
+    <h1>PaperBanana <span class="mute">· 学术绘图</span></h1>
+    <p class="subtitle">上传实验数据与绘图指令，AI 智能体团队遵循顶会出版标准，渲染高精度图表及可编辑源码。</p>
+  </header>
+
+  <!-- AI Config -->
+  <div class="bento-card fade-in" style="padding: 28px; margin-bottom: 24px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom: 18px;">
+      <span style="font-size:24px;">⚙️</span>
+      <div>
+        <h3 style="margin:0; font-size:16px;">引擎配置</h3>
+        <p style="margin:0; font-size:12px; color:var(--text-mute);">读取自 Workspace 全局设置，也可在此覆盖</p>
+      </div>
+      <span class="badge" id="config-badge" style="margin-left:auto;">未配置</span>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px;">
+      <div>
+        <label class="field-label">API Key</label>
+        <input class="apple-input" id="api-key" type="password" placeholder="sk-...">
+      </div>
+      <div>
+        <label class="field-label">Base URL</label>
+        <input class="apple-input" id="base-url" type="text" placeholder="https://api.openai.com/v1">
+      </div>
+      <div>
+        <label class="field-label">模型名称</label>
+        <input class="apple-input" id="model-name" type="text" placeholder="gpt-4o">
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar fade-in" id="tab-bar">
+    <button class="on" data-tab="stats">📊 实验统计图（上传数据）</button>
+    <button data-tab="diagram">🧩 方法架构图（输入文本）</button>
+  </div>
+
+  <!-- Tab: Stats -->
+  <div id="tab-stats" class="fade-in">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+      <div class="bento-card" style="padding:28px;">
+        <h3 style="margin:0 0 16px; font-size:18px;">1. 提交实验数据</h3>
+        <input type="file" id="file-input" accept=".csv,.xlsx" style="display:none;">
+        <button class="apple-btn ghost full" id="file-btn" style="margin-bottom:16px;">📁 选择 CSV / Excel 文件</button>
+        <div class="data-preview" id="data-preview" style="display:none;"></div>
+
+        <h3 style="margin:20px 0 12px; font-size:18px;">2. 描述绘图意图</h3>
+        <textarea class="apple-input" id="intent-input" placeholder="例如：画一个分组柱状图对比不同 Model 在不同 Dataset 上的准确率。添加误差棒，图例放在左上角，Y轴设为 0-100。" style="height:120px; resize:none;"></textarea>
+
+        <button class="apple-btn blue full" id="generate-btn" style="margin-top:20px;">🚀 启动智能体团队开始绘图</button>
+      </div>
+
+      <div class="bento-card" style="padding:28px;">
+        <h3 style="margin:0 0 16px; font-size:18px;">3. 渲染结果与导出</h3>
+        <div id="status-area"></div>
+        <div class="chart-container" id="chart-container">
+          <div class="empty" style="padding-top:200px;"><span class="big">📈</span>等待生成...</div>
+        </div>
+        <div class="export-row" id="export-row" style="display:none;"></div>
+        <details id="code-viewer" style="display:none; margin-top:16px;">
+          <summary style="cursor:pointer; color:var(--text-mute); font-size:13px;">👨‍💻 查看生成的配置源码</summary>
+          <code-block id="code-block"></code-block>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Diagram -->
+  <div id="tab-diagram" class="fade-in" style="display:none;">
+    <div class="bento-card" style="padding:44px; text-align:center;">
+      <div style="font-size:56px; margin-bottom:18px;">🖼️</div>
+      <h2 style="margin:0 0 12px; font-size:22px;">方法架构图生成</h2>
+      <p style="color:var(--text-mute); margin:0 0 24px; line-height:1.6;">
+        将论文方法论文本转化为框架流程图。<br/>
+        该模块需对接图像扩散模型（如 DALL·E 3 / Nano-Banana-Pro），<br/>
+        当前为前端流程占位，完整版开发中。
+      </p>
+      <textarea class="apple-input" placeholder="粘贴论文 Methodology 原文..." style="height:120px; margin-bottom:16px;"></textarea>
+      <input class="apple-input" placeholder="图表说明 (Caption)，如：Figure 1: Overall architecture..." style="margin-bottom:16px;">
+      <button class="apple-btn ghost">🖌️ 生成方法架构图（即将上线）</button>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ================================================================
+   PaperBanana — 学术科研绘图系统 (Client-Side Edition)
+   ================================================================ */
+const API_DEFAULTS = {
+  key: 'sk-',
+  base: 'https://api.openai.com/v1',
+  model: 'gpt-4o'
+};
+
+let parsedData = null;
+let parsedColumns = [];
+let chartInstance = null;
+let currentGenCode = '';
+
+/* ---------- Init ---------- */
+function init() {
+  loadConfig();
+  bindEvents();
+}
+
+function loadConfig() {
+  const key = localStorage.getItem('api_key') || '';
+  const base = localStorage.getItem('api_base') || API_DEFAULTS.base;
+  const model = localStorage.getItem('api_model') || API_DEFAULTS.model;
+  document.getElementById('api-key').value = key;
+  document.getElementById('base-url').value = base;
+  document.getElementById('model-name').value = model;
+  updateConfigBadge();
+}
+
+function saveConfig() {
+  localStorage.setItem('api_key', document.getElementById('api-key').value);
+  localStorage.setItem('api_base', document.getElementById('base-url').value);
+  localStorage.setItem('api_model', document.getElementById('model-name').value);
+  updateConfigBadge();
+  toast('⚙️ 配置已保存');
+}
+
+function updateConfigBadge() {
+  const key = document.getElementById('api-key').value;
+  const badge = document.getElementById('config-badge');
+  if (key && key.length > 4) {
+    badge.textContent = '● 已配置';
+    badge.className = 'badge live';
+  } else {
+    badge.textContent = '未配置';
+    badge.className = 'badge gone';
+  }
+}
+
+document.getElementById('api-key').addEventListener('change', saveConfig);
+document.getElementById('base-url').addEventListener('change', saveConfig);
+document.getElementById('model-name').addEventListener('change', saveConfig);
+
+/* ---------- Tab switching ---------- */
+function bindEvents() {
+  document.querySelectorAll('#tab-bar button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#tab-bar button').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      const tab = btn.dataset.tab;
+      document.getElementById('tab-stats').style.display = tab === 'stats' ? '' : 'none';
+      document.getElementById('tab-diagram').style.display = tab === 'diagram' ? '' : 'none';
+      if (tab === 'stats' && chartInstance) chartInstance.resize();
+    });
+  });
+
+  document.getElementById('file-btn').addEventListener('click', () => {
+    document.getElementById('file-input').click();
+  });
+
+  document.getElementById('file-input').addEventListener('change', handleFile);
+  document.getElementById('generate-btn').addEventListener('click', generate);
+}
+
+/* ---------- File parsing ---------- */
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const wb = XLSX.read(ev.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      if (json.length < 2) { toast('⚠️ 数据不足，至少需要表头 + 一行数据'); return; }
+      const headers = json[0];
+      const rows = json.slice(1).filter(r => r.some(c => c !== undefined && c !== ''));
+      parsedColumns = headers;
+      parsedData = rows.map(r => {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = r[i] !== undefined ? r[i] : ''; });
+        return obj;
+      });
+      renderPreview(headers, rows);
+      toast(`✓ 已加载 ${rows.length} 行数据，${headers.length} 个字段`);
+    } catch(err) {
+      toast('❌ 文件解析失败: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderPreview(headers, rows) {
+  const el = document.getElementById('data-preview');
+  el.style.display = 'block';
+  let html = '<table><thead><tr>';
+  headers.forEach(h => { html += `<th>${escHtml(String(h))}</th>`; });
+  html += '</tr></thead><tbody>';
+  const previewRows = rows.slice(0, 8);
+  previewRows.forEach(r => {
+    html += '<tr>';
+    headers.forEach((h, i) => { html += `<td>${escHtml(String(r[i] ?? ''))}</td>`; });
+    html += '</tr>';
+  });
+  if (rows.length > 8) html += `<tr><td colspan="${headers.length}" style="color:var(--text-mute);text-align:center;">… 还有 ${rows.length - 8} 行</td></tr>`;
+  html += '</tbody></table>';
+  el.innerHTML = html;
+  document.getElementById('file-btn').textContent = '📁 重新选择文件';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ---------- AI Generation ---------- */
+const SYSTEM_PROMPT = `你是一个顶尖的AI科研数据可视化专家，熟悉 NeurIPS/CVPR 等顶会的学术绘图规范。
+任务：根据用户提供的实验数据示例和绘图意图，生成一个 ECharts 配置对象 (option) 用于渲染学术图表。
+
+【学术审美规范强制要求】:
+1. 颜色: 使用柔和学术莫兰迪色系 '#4A90E2','#F5A623','#7EC8A0','#E8837A','#9B8EC4'，禁止高饱和度色。
+2. 背景: 图表背景纯白 '#ffffff'。
+3. 网格: 添加水平虚线网格 (splitLine)，浅灰色，置于底层。
+4. 字体: 使用无衬线字体，高对比度，坐标轴标签清晰可读。
+5. 边框: 简洁清爽，不要多余的装饰边框。
+
+【输出严格要求】:
+1. 仅输出一个有效的 JSON 对象——ECharts 的 option 配置。不要用 markdown 包裹，不要 \`\`\`json。
+2. 输出必须以 { 开头，以 } 结尾，且能被 JSON.parse() 直接解析。
+3. 数据字段 (data) 必须使用用户提供的实际列名和值。数字列可用于 xAxis.data / series.data。如果用户提到分组/系列，请使用 dataset + series.encode 或直接 series.data。
+4. 如果需要图例，设置 legend 的 top/bottom/left/right。
+5. 柱状图用 bar，折线图用 line，散点用 scatter。推荐 bar 和 line。
+6. 不要包含任何解释文字或注释。`;
+
+async function generate() {
+  const apiKey = document.getElementById('api-key').value.trim();
+  const baseUrl = document.getElementById('base-url').value.trim() || API_DEFAULTS.base;
+  const modelName = document.getElementById('model-name').value.trim() || API_DEFAULTS.model;
+  const intent = document.getElementById('intent-input').value.trim();
+
+  if (!apiKey) { toast('⚠️ 请先配置 API Key'); return; }
+  if (!parsedData) { toast('⚠️ 请上传实验数据'); return; }
+  if (!intent) { toast('⚠️ 请描述绘图意图'); return; }
+
+  const statusArea = document.getElementById('status-area');
+  const MAX_RETRIES = 3;
+  let finalOption = null;
+
+  // Build data sample
+  const headers = parsedColumns;
+  const sampleRows = parsedData.slice(0, 5);
+  let dataDesc = `数据列: ${headers.join(', ')}\n`;
+  dataDesc += `行数: ${parsedData.length}\n`;
+  dataDesc += '数据示例（前5行）:\n';
+  dataDesc += JSON.stringify(sampleRows, null, 2);
+
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: `${dataDesc}\n\n绘图意图:\n${intent}\n请直接输出 ECharts option JSON。` }
+  ];
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const label = attempt === 0
+      ? '🤖 Planner & Stylist 正在分析数据...'
+      : `🧐 Critic 第 ${attempt + 1}/${MAX_RETRIES} 轮自修复...`;
+    setStatus(statusArea, 'running', label);
+
+    try {
+      const resp = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: modelName,
+          messages: messages,
+          temperature: 0.1,
+          max_tokens: 4096
+        })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.text();
+        setStatus(statusArea, 'error', `❌ API 调用失败 (${resp.status}): ${err.slice(0, 200)}`);
+        return;
+      }
+
+      const data = await resp.json();
+      const replyText = data.choices[0].message.content;
+      const jsonText = extractJSON(replyText);
+
+      try {
+        finalOption = JSON.parse(jsonText);
+        currentGenCode = JSON.stringify(finalOption, null, 2);
+      } catch (parseErr) {
+        if (attempt < MAX_RETRIES - 1) {
+          messages.push({ role: 'assistant', content: replyText });
+          messages.push({ role: 'user', content: `输出的 JSON 无法解析: ${parseErr.message}\n请重新输出有效的纯 JSON 对象（以 { 开头，} 结尾）。` });
+          continue;
+        }
+        setStatus(statusArea, 'error', `❌ JSON 解析失败: ${parseErr.message}`);
+        document.getElementById('code-block').textContent = jsonText;
+        document.getElementById('code-viewer').style.display = 'block';
+        return;
+      }
+
+      // Validate basic structure
+      if (!finalOption.series && !finalOption.dataset) {
+        if (attempt < MAX_RETRIES - 1) {
+          messages.push({ role: 'assistant', content: replyText });
+          messages.push({ role: 'user', content: '输出的 JSON 缺少 series 或 dataset 字段，请补充。' });
+          continue;
+        }
+        setStatus(statusArea, 'error', '❌ 图表配置缺少 series 字段');
+        return;
+      }
+
+      // Try rendering
+      try {
+        renderChart(finalOption);
+        setStatus(statusArea, 'ok', '✅ 图表渲染成功！通过 Critic 审查。');
+        break;
+      } catch (renderErr) {
+        if (attempt < MAX_RETRIES - 1) {
+          messages.push({ role: 'assistant', content: replyText });
+          messages.push({ role: 'user', content: `ECharts 渲染报错: ${renderErr.message}\n请修正 option 配置并重新输出。` });
+          continue;
+        }
+        setStatus(statusArea, 'error', `❌ 渲染失败: ${renderErr.message}`);
+      }
+
+    } catch (err) {
+      setStatus(statusArea, 'error', `❌ 请求失败: ${err.message}`);
+      return;
+    }
+  }
+
+  // Show export & code
+  if (finalOption) {
+    document.getElementById('export-row').style.display = 'flex';
+    document.getElementById('code-viewer').style.display = 'block';
+    document.getElementById('code-block').textContent = currentGenCode;
+    setupExport();
+  }
+}
+
+function extractJSON(text) {
+  text = text.trim();
+  // Remove markdown code fences
+  const mdMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (mdMatch) text = mdMatch[1].trim();
+  // Find first { and last }
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start !== -1 && end > start) text = text.slice(start, end + 1);
+  return text;
+}
+
+function setStatus(el, state, msg) {
+  const dotClass = state === 'running' ? 'running' : state === 'ok' ? 'ok' : 'err';
+  el.innerHTML = `<div class="status-line"><span class="dot ${dotClass}"></span> ${msg}</div>`;
+}
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2400);
+}
+
+/* ---------- Chart rendering ---------- */
+function renderChart(option) {
+  const container = document.getElementById('chart-container');
+  container.innerHTML = '';
+
+  if (chartInstance) chartInstance.dispose();
+  chartInstance = echarts.init(container, null, { renderer: 'svg' });
+
+  // Apply academic defaults
+  const finalOption = {
+    backgroundColor: '#ffffff',
+    animation: true,
+    ...option
+  };
+
+  // Apply textStyle defaults
+  if (!finalOption.textStyle) {
+    finalOption.textStyle = { fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif' };
+  }
+
+  chartInstance.setOption(finalOption);
+  window.addEventListener('resize', () => chartInstance && chartInstance.resize());
+}
+
+/* ---------- Export ---------- */
+function setupExport() {
+  const row = document.getElementById('export-row');
+  row.innerHTML = `
+    <button class="apple-btn ghost" id="export-png">🖼️ 导出 PNG</button>
+    <button class="apple-btn ghost" id="export-svg">📐 导出 SVG</button>
+  `;
+  document.getElementById('export-png').addEventListener('click', () => {
+    if (!chartInstance) return;
+    const url = chartInstance.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' });
+    downloadURL(url, 'academic_plot.png');
+  });
+  document.getElementById('export-svg').addEventListener('click', () => {
+    if (!chartInstance) return;
+    // ECharts renders as SVG when initialized with renderer:'svg'
+    const container = document.getElementById('chart-container');
+    const svg = container.querySelector('svg');
+    if (svg) {
+      const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml' });
+      downloadURL(URL.createObjectURL(blob), 'academic_plot.svg');
+    }
+  });
+}
+
+function downloadURL(url, filename) {
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+init();
+</script>
+</body>
+</html>
